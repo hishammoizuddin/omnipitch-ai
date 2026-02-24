@@ -124,5 +124,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-### **Designed by Aisynch Labs**
+### **Designed by Hisham Moizuddin**
 *Translating raw complexity into strategic clarity.*
