@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+langchain
+langchain-openai
+langgraph
+pinecone
+python-pptx
+pydantic>=2.0.0
+langchain-pinecone
+python-dotenv
+python-docx
+PyPDF2
