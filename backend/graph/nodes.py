@@ -57,13 +57,16 @@ def BusinessValue_Node(state: AgentState) -> dict:
     structured_llm = llm.with_structured_output(BusinessOutcomes)
     
     org_name = state.get("org_name") or "the enterprise"
-    purpose = state.get("purpose") or "general tech overview"
+    duration = state.get("purpose") or "10 minutes"
     target_audience = state.get("target_audience") or state.get("persona") or "Executive"
-    key_message = state.get("key_message") or "general operational business value"
+    user_sections = state.get("key_message") or "general operational business value"
     theme_vibe = state.get("theme_vibe") or "Executive Corporate"
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", f"You are a Senior Strategic Partner at McKinsey & Company exclusively advising {org_name}. Map the technical features of this architecture to high-margin business outcomes. Target Audience: '{target_audience}'. Design Vibe: '{theme_vibe}'. Core Goal: '{purpose}'. Key Strategic Imperative to enforce: '{key_message}'.\n\nCRITICAL INSTRUCTION: Do NOT merely summarize or repeat the raw input. You must synthesize the data into forward-looking, high-signal business strategy, focusing heavily on operational efficiency, market advantage, and direct ROI for {org_name}'s specific context."),
+        ("system", f"You are a Senior Strategic Partner at McKinsey & Company exclusively advising on '{org_name}'. Map the technical features of this architecture to high-margin business outcomes.\n"
+                   f"Target Audience: '{target_audience}'. Tone: '{theme_vibe}'. Presentation Duration: '{duration}'.\n"
+                   f"CRITICAL USER REQUEST: The user explicitly wants to focus on these areas/sections: '{user_sections}'. You MUST tailor the targeted business outcomes to highlight these specific areas.\n\n"
+                   f"CRITICAL INSTRUCTION: Do NOT merely summarize the raw input. Synthesize the data into forward-looking, high-signal business strategy, focusing heavily on operational efficiency, market advantage, and direct ROI outcomes."),
         ("user", "Technical Architecture:\n\n{parsed_architecture}")
     ])
     
@@ -84,14 +87,23 @@ def Narrative_Node(state: AgentState) -> dict:
     context = "\n\n".join(doc.page_content for doc in docs)
     
     org_name = state.get("org_name") or "the enterprise"
-    purpose = state.get("purpose") or "general tech overview"
+    duration = state.get("purpose") or "10 minutes"
     target_audience = state.get("target_audience") or state.get("persona") or "Executive"
-    key_message = state.get("key_message") or "strategic impact"
+    user_sections = state.get("key_message") or "strategic impact"
     theme_vibe = state.get("theme_vibe") or "Executive Corporate"
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", f"You are an elite Enterprise Strategy Consultant for {org_name}. Architect a 5-to-7 slide master narrative explicitly tailored for: '{target_audience}'. Ultimate Goal: '{purpose}'. Strategic Imperative: '{key_message}'. Design Vibe: '{theme_vibe}'.\n\nCRITICAL INSTRUCTIONS:\n1. Your presentation must NOT simply repeat the user's inputs or technical bullet points. It must be highly 'Output-Oriented'—charting the actionable business journey required to achieve the Ultimate Goal.\n2. Do NOT mention OmniPitchAI or Aisynch Labs. The presentation belongs to {org_name}.\n3. Select a `layout_style` dynamically: use 'Flowchart' or 'Architecture' when outlining processes/systems; use 'Key Metric' or 'ROI' when highlighting specific numbers/gains; use 'Standard Bullet' for narrative context.\n4. Keep the tone rigorously aligned with the requested '{theme_vibe}'. Speak like a true executive leader.\n\nUse the following enterprise terminology ONLY if it aligns with the requested output:\n\n{{context}}"),
-        ("user", "Technical Architecture capabilities:\n{parsed_architecture}\n\nStrategic Business Value Outcomes:\n{business_value}\n\nGenerate the compelling narrative slides mapping strictly to the layout styles and strategic talking points.")
+        ("system", f"You are an elite Enterprise Strategy Consultant building a master narrative for: '{org_name}'. Tailor the content explicitly for the audience: '{target_audience}'.\n"
+                   f"The presentation duration is EXACTLY '{duration}'. Plan the number of slides accordingly (roughly 1 slide per 1.5 to 2 minutes).\n"
+                   f"CRITICAL USER REQUEST: The user strictly explicitly requested to focus on these sections/references: '{user_sections}'. You MUST incorporate these specific requested themes and talking points into the slides.\n"
+                   f"Tone & Voice: '{theme_vibe}'.\n\n"
+                   f"CRITICAL INSTRUCTIONS:\n"
+                   f"1. Your presentation must NOT simply repeat technical bullet points. It must synthesize them into an actionable, highly-engaging business narrative that the user asked for.\n"
+                   f"2. You MUST cover the user's specific requested sections: '{user_sections}'. Make sure these points feature prominently.\n"
+                   f"3. Select a `layout_style` dynamically: use 'Flowchart' or 'Architecture' when outlining processes/systems; use 'Key Metric' or 'ROI' when highlighting specific numbers/gains; use 'Standard Bullet' for narrative context.\n"
+                   f"4. Keep the tone rigorously aligned with the requested '{theme_vibe}'. Speak like a true leader.\n\n"
+                   f"Use the following enterprise terminology ONLY if it aligns with the requested output:\n\n{{context}}"),
+        ("user", "Technical Architecture capabilities:\n{parsed_architecture}\n\nStrategic Business Value Outcomes:\n{business_value}\n\nGenerate the compelling narrative slides mapping strictly to the layout styles and heavily incorporating the user's requested focus areas.")
     ])
     
     business_value_str = "\n".join(state.get("business_value", []))

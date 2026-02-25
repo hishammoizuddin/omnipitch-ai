@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { UploadDropzone } from './components/UploadDropzone';
-import { ExecutionStepper } from './components/ExecutionStepper';
+import { LeftSidebar } from './components/Workspace/LeftSidebar';
+import { CentralCanvas } from './components/Workspace/CentralCanvas';
+import type { WizardData } from './components/Wizard/FormWizard';
 import { uploadDocument, checkStatus, getDownloadUrl, getMe } from './api/client';
-import { Download, AlertCircle, LogOut } from 'lucide-react';
+import { AlertCircle, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Joyride from 'react-joyride';
 import type { Step } from 'react-joyride';
@@ -90,17 +91,27 @@ function App() {
     checkAuth();
   }, []);
 
-  const handleUpload = async (file: File, orgName: string, purpose: string, targetAudience: string, keyMessage: string, designVibe: string) => {
+  const handleGenerate = async (data: WizardData) => {
     try {
       setStatus('uploading');
       setErrorMsg(null);
-      const response = await uploadDocument(file, orgName, purpose, targetAudience, keyMessage, designVibe);
+      // Fallback dummy file if none is provided since API requires multipart
+      const fileToUpload = data.file || new File(['No data'], 'dummy.txt', { type: 'text/plain' });
+
+      const response = await uploadDocument(
+        fileToUpload,
+        data.topic,
+        data.duration + ' minutes',
+        data.audience || 'General Audience',
+        data.sections || 'General overview',
+        data.tone
+      );
       setJobId(response.job_id);
       setStatus('processing');
-      setCurrentStep('Parsing Architecture');
+      setCurrentStep('Parsing Context');
     } catch (err: any) {
       setStatus('error');
-      setErrorMsg(err.response?.data?.detail || "Failed to upload document.");
+      setErrorMsg(err.response?.data?.detail || "Failed to start generation.");
     }
   };
 
@@ -181,56 +192,29 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden bg-slate-950 font-sans text-slate-200 selection:bg-indigo-500/30">
-      {/* Subtle Apple-like background glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-      <Joyride
-        steps={tourSteps}
-        run={runTour}
-        continuous
-        showProgress
-        showSkipButton
-        styles={{
-          options: {
-            primaryColor: '#64748b',
-            backgroundColor: '#0a0a0a',
-            arrowColor: '#0a0a0a',
-            textColor: '#cbd5e1',
-            overlayColor: 'rgba(0, 0, 0, 0.9)'
-          },
-          tooltipContainer: {
-            textAlign: 'left'
-          },
-          buttonNext: {
-            backgroundColor: '#334155'
-          },
-          buttonBack: {
-            color: '#64748b'
-          }
-        }}
-      />
+    <div className="fixed inset-0 w-full flex flex-col overflow-hidden bg-slate-950 font-sans text-slate-200 selection:bg-indigo-500/30">
+      {/* Background glow effects */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen z-0" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none mix-blend-screen z-0" />
 
       {/* Top Bar Navigation */}
-      <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-20 pointer-events-none">
-
+      <div className="h-[72px] w-full px-6 flex justify-between items-center z-20 border-b border-white/5 bg-slate-950/80 backdrop-blur-md shrink-0">
         {/* Left: Branding */}
         <div className="flex-1">
           <BrandLogo />
         </div>
 
         {/* Right: User Settings */}
-        <div className="flex items-center space-x-6 pointer-events-auto bg-slate-900/40 backdrop-blur-xl border border-white/10 pr-2 pl-4 py-2 rounded-full shadow-lg">
+        <div className="flex items-center space-x-6">
           <div className="tour-step-1 flex items-center space-x-3 text-slate-300 border-r border-white/10 pr-6">
             <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 shadow-sm backdrop-blur-md">
-              <span className="font-semibold text-slate-200">{user.first_name ? user.first_name.charAt(0) : user.email?.charAt(0)}</span>
+              <span className="font-semibold text-slate-200">{user?.first_name ? user.first_name.charAt(0) : user?.email?.charAt(0)}</span>
             </div>
             <div className="text-sm">
-              <p className="text-slate-400 text-xs">Logged in as</p>
-              <p className="font-medium text-slate-100 leading-tight">{user.first_name || user.email}</p>
+              <p className="font-medium text-slate-100 leading-tight">{user?.first_name || user?.email}</p>
               <div className="flex items-center space-x-2 mt-0.5">
-                <p className="text-[11px] text-slate-400 font-medium">
-                  {formatPersona(user.persona)} Persona
+                <p className="text-[11px] text-slate-400 font-medium tracking-wide">
+                  {formatPersona(user?.persona)}
                 </p>
                 <button
                   onClick={() => {
@@ -238,7 +222,7 @@ function App() {
                     setJobId(null);
                     setStatus('idle');
                   }}
-                  className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-full text-slate-300 transition-colors shadow-sm"
+                  className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-full text-slate-300 transition-colors shadow-sm ml-2"
                 >
                   Change
                 </button>
@@ -259,98 +243,42 @@ function App() {
           </button>
         </div>
       </div>
-      <div className="max-w-4xl w-full z-10 relative">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="text-center mb-16"
-        >
-          <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-            <span className="text-xs font-semibold text-slate-300 tracking-wide">OmniPitchAI is ready</span>
-          </div>
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6 text-white drop-shadow-sm">
-            Architecture, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">explained.</span>
-          </h1>
-          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed px-4 font-light">
-            Instantly translate raw code and architectures into executive narratives. <br className="hidden sm:block" /> Perfected for the C-Suite.
-          </p>
-        </motion.div>
 
-        <div className="tour-step-2">
-          <AnimatePresence mode="wait">
-            {(status === 'idle' || status === 'uploading' || (status === 'error' && !jobId)) && (
-              <motion.div
-                key="upload"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                transition={{ duration: 0.5 }}
-              >
-                <UploadDropzone onUpload={handleUpload} isUploading={status === 'uploading'} />
-              </motion.div>
-            )}
-
-            {(status === 'processing' || status === 'completed') && (
-              <motion.div
-                key="stepper"
-                className="tour-step-3"
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <ExecutionStepper currentStep={currentStep} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+      {/* Main Workspace */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 w-full tour-step-2">
+        {/* Left Sidebar (Hidden on mobile) */}
+        <div className="hidden lg:block h-full">
+          <LeftSidebar status={status} currentStep={currentStep} />
         </div>
 
-        {errorMsg && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center text-red-400 backdrop-blur-sm shadow-sm text-sm"
-          >
-            <AlertCircle className="w-5 h-5 mr-3 shrink-0" />
-            <p>{errorMsg}</p>
-          </motion.div>
-        )}
-
-        {status === 'completed' && jobId && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="tour-step-4 mt-16 text-center"
-          >
-            <motion.a
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              href={getDownloadUrl(jobId)}
-              download
-              className="inline-flex items-center px-8 py-4 bg-white hover:bg-slate-100 text-slate-900 text-base font-semibold rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-0.5"
-            >
-              <Download className="w-5 h-5 mr-3" />
-              Download Presentation
-            </motion.a>
-            <div className="mt-8">
-              <button
-                onClick={() => { setJobId(null); setStatus('idle'); setCurrentStep(''); }}
-                className="text-slate-400 hover:text-white transition-colors text-sm font-medium"
+        {/* Central Canvas */}
+        <div className="flex-1 overflow-y-auto relative z-10 bg-slate-950/50">
+          {errorMsg && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-full flex items-center text-red-400 backdrop-blur-md shadow-lg text-sm"
               >
-                Generate Another Document
-              </button>
+                <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
+                <p>{errorMsg}</p>
+              </motion.div>
             </div>
-          </motion.div>
-        )}
+          )}
+
+          <CentralCanvas
+            status={status}
+            currentStep={currentStep}
+            jobId={jobId}
+            downloadUrl={jobId ? getDownloadUrl(jobId) : ''}
+            onGenerate={handleGenerate}
+          />
+        </div>
+
       </div>
 
       {/* Footer */}
-      <div className="absolute bottom-0 w-full p-6 flex justify-between items-center text-slate-500 text-xs z-10 border-t border-white/5 bg-slate-950/80 backdrop-blur-md">
+      <div className="h-12 w-full px-6 flex justify-between items-center text-slate-500 text-xs z-20 border-t border-white/5 bg-slate-950/80 backdrop-blur-md shrink-0">
         <p>© 2026 Aisynch Labs</p>
         <div className="flex space-x-6">
           <a href="#" className="hover:text-slate-300 transition-colors">Privacy</a>
@@ -358,6 +286,26 @@ function App() {
           <a href="#" className="hover:text-slate-300 transition-colors">Support</a>
         </div>
       </div>
+
+      <Joyride
+        steps={tourSteps}
+        run={runTour}
+        continuous
+        showProgress
+        showSkipButton
+        styles={{
+          options: {
+            primaryColor: '#6366f1',
+            backgroundColor: '#0f172a',
+            arrowColor: '#0f172a',
+            textColor: '#f1f5f9',
+            overlayColor: 'rgba(0, 0, 0, 0.7)'
+          },
+          tooltipContainer: {
+            textAlign: 'left'
+          }
+        }}
+      />
     </div>
   );
 }
