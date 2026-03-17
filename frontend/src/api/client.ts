@@ -1,8 +1,10 @@
 import axios from 'axios';
+import type { GenerationStatusPayload } from '../types/generation';
 
-// Ensure this matches the FastAPI backend host and port
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 export const api = axios.create({
-    baseURL: 'http://localhost:8000',
+    baseURL: API_BASE_URL,
 });
 
 // Intercept requests to add JWT token if it exists
@@ -14,33 +16,35 @@ api.interceptors.request.use((config) => {
     return config;
 }, (error) => Promise.reject(error));
 
-export const uploadDocument = async (file: File, orgName: string, purpose: string, targetAudience: string, keyMessage: string, designVibe: string) => {
+export const uploadDocument = async (
+    files: File[],
+    orgName: string,
+    purpose: string,
+    targetAudience: string,
+    keyMessage: string,
+    designVibe: string,
+) => {
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => {
+        formData.append('files', file);
+    });
     formData.append('org_name', orgName);
     formData.append('purpose', purpose);
     formData.append('target_audience', targetAudience);
     formData.append('key_message', keyMessage);
     formData.append('design_vibe', designVibe);
 
-    const response = await api.post<{ job_id: string, status: string }>('/api/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const response = await api.post<GenerationStatusPayload>('/api/upload', formData);
     return response.data;
 };
 
 export const checkStatus = async (jobId: string) => {
-    const response = await api.get<{
-        job_id: string;
-        status: string;
-        current_step: string;
-        error_msg: string | null;
-    }>(`/api/status/${jobId}`);
+    const response = await api.get<GenerationStatusPayload>(`/api/status/${jobId}`);
     return response.data;
 };
 
 export const getDownloadUrl = (jobId: string) => {
-    return `http://localhost:8000/api/download/${jobId}`;
+    return `${API_BASE_URL}/api/download/${jobId}`;
 };
 
 // --- AUTHENTICATION API ---

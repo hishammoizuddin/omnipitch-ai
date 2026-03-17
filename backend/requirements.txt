@@ -1,6 +1,10 @@
 fastapi
 uvicorn
 python-multipart
+sqlalchemy
+pymysql
+bcrypt
+python-jose
 langchain
 langchain-openai
 langgraph

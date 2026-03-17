@@ -1,11 +1,16 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# User requested local MySQL
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:@localhost/omnipitchai_db"
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./omnipitchai.db")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine_kwargs = {}
+if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, **engine_kwargs)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 
 interface UploadDropzoneProps {
-    onUpload: (file: File, orgName: string, purpose: string, targetAudience: string, keyMessage: string, designVibe: string) => void;
+    onUpload: (files: File[], orgName: string, purpose: string, targetAudience: string, keyMessage: string, designVibe: string) => void;
     isUploading: boolean;
 }
 
@@ -26,7 +26,7 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
         }
 
         if (acceptedFiles.length > 0) {
-            onUpload(acceptedFiles[0], orgName, purpose, targetAudience, keyMessage, designVibe);
+            onUpload(acceptedFiles, orgName, purpose, targetAudience, keyMessage, designVibe);
         }
     }, [onUpload, orgName, purpose, targetAudience, keyMessage, designVibe]);
 
@@ -34,9 +34,15 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
         onDrop,
         accept: {
             'application/zip': ['.zip'],
-            'text/markdown': ['.md']
+            'text/markdown': ['.md', '.markdown'],
+            'text/plain': ['.txt', '.py', '.ts', '.tsx', '.js', '.jsx', '.json', '.yaml', '.yml', '.toml'],
+            'application/pdf': ['.pdf'],
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+            'image/png': ['.png'],
+            'image/jpeg': ['.jpg', '.jpeg']
         },
-        maxFiles: 1
+        maxFiles: 12,
+        multiple: true
     });
 
     return (
@@ -113,7 +119,7 @@ export function UploadDropzone({ onUpload, isUploading }: UploadDropzoneProps) {
                         Upload Architecture Data
                     </h3>
                     <p className="text-slate-400 text-base font-light">
-                        Drag and drop your repository zip or markdown documentation here.
+                        Drag and drop mixed source files like zip archives, docs, code, PDFs, or images here.
                     </p>
                     {error && (
                         <div className="mt-6 flex items-center justify-center text-red-400 bg-red-500/10 border border-red-500/20 py-3 px-4 rounded-xl text-sm backdrop-blur-sm">

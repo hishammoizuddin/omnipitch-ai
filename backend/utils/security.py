@@ -1,9 +1,10 @@
+import os
 import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt
 
-SECRET_KEY = "AISYNCH_LABS_SUPER_SECRET_KEY_FOR_POC" # In production, use os.environ.get
+SECRET_KEY = os.environ.get("SECRET_KEY", "AISYNCH_LABS_SUPER_SECRET_KEY_FOR_POC")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 1 day
 

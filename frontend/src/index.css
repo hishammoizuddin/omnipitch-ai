@@ -3,7 +3,59 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+    font-family: "Aptos", "Avenir Next", "Segoe UI", sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
+      radial-gradient(circle at 82% 12%, rgba(245, 158, 11, 0.08), transparent 22%),
+      linear-gradient(180deg, #07111f 0%, #050a14 100%);
+    background-color: #050a14;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
   body {
-    @apply bg-brand-dark text-slate-200 antialiased font-sans selection:bg-brand-blue selection:text-white;
+    @apply antialiased text-slate-200 selection:bg-sky-400/30 selection:text-white;
+    background:
+      radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
+      radial-gradient(circle at 82% 12%, rgba(245, 158, 11, 0.08), transparent 22%),
+      linear-gradient(180deg, #07111f 0%, #050a14 100%);
+    background-color: #050a14;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 189, 248, 0.24) rgba(15, 23, 42, 0.4);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.4);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.24);
+    border-radius: 9999px;
+    border: 2px solid rgba(15, 23, 42, 0.4);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.34);
+  }
+}
+
+@layer components {
+  .preview-slide {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }

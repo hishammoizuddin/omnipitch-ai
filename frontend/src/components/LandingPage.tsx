@@ -70,7 +70,7 @@ export function LandingPage({ onLoginClick }: LandingPageProps) {
                     </motion.h1>
 
                     <motion.p variants={fadeIn} className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-10 font-light">
-                        Accelerate enterprise alignment. OmniPitch leverages autonomous Agentic AI to instantly convert technical architectures and project specifications into persuasive, boardroom-ready presentations tailored to over 100 distinct executive personas.
+                        Accelerate enterprise alignment. OmniPitch turns mixed source packets like architecture docs, repo archives, PDFs, images, and technical notes into persuasive, boardroom-ready presentations tailored to over 100 distinct executive personas.
                     </motion.p>
 
                     <motion.div variants={fadeIn} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -109,7 +109,7 @@ export function LandingPage({ onLoginClick }: LandingPageProps) {
                             </div>
                             <h3 className="text-xl font-semibold text-white mb-3 tracking-tight">1. Provide Technical Context</h3>
                             <p className="text-slate-400 leading-relaxed font-light text-[15px]">
-                                Upload fragmented project files, technical documentation, or strategic outlines. OmniPitch instantly processes and indexes your unique enterprise context.
+                                Upload mixed project files, technical documentation, diagrams, or strategic outlines. OmniPitch instantly processes the full context packet in one generation flow.
                             </p>
                         </motion.div>
 
