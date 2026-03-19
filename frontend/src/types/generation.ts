@@ -9,11 +9,36 @@ export interface DeckMetric {
     label: string;
     value: string;
     detail: string;
+    tone?: 'primary' | 'secondary';
 }
 
 export interface DeckCard {
     title: string;
     body: string;
+    tone?: 'primary' | 'secondary';
+}
+
+export interface SlideRenderPayload {
+    lead_quote: string;
+    bullet_points: string[];
+    feature_cards: DeckCard[];
+    metric_cards: DeckMetric[];
+    step_cards: DeckCard[];
+    comparison_cards: DeckCard[];
+    supporting_card: DeckCard | null;
+    supporting_cards: DeckCard[];
+}
+
+export interface DeckCoverPayload {
+    eyebrow: string;
+    highlight_cards: DeckCard[];
+}
+
+export interface DeckClosingPayload {
+    eyebrow: string;
+    headline: string;
+    subheadline: string;
+    pill_text: string;
 }
 
 export interface PresentationSlide {
@@ -28,12 +53,15 @@ export interface PresentationSlide {
     flow_steps: string[];
     quote: string;
     accent: string;
+    render_payload?: SlideRenderPayload;
 }
 
 export interface PresentationDeck {
     deck_title: string;
     deck_subtitle: string;
     theme_vibe: string;
+    cover_payload?: DeckCoverPayload;
+    closing_payload?: DeckClosingPayload;
     slides: PresentationSlide[];
 }
 

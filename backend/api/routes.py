@@ -52,12 +52,30 @@ NEXT_STEP_BY_NODE = {
     "Narrative_Node": "Formatting Custom JSON",
     "Formatting_Node": "Rendering Presentation",
 }
+MODEL_REFUSAL_HINTS = (
+    "can't assist with that",
+    "cannot assist with that",
+    "can't help with that",
+    "cannot help with that",
+    "sorry, i can't",
+    "sorry, i cannot",
+    "request was refused",
+    "refusal",
+)
 
 
 def safe_filename(value: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", (value or "").strip())
     cleaned = cleaned.strip("._")
     return cleaned or "Executive_Deck"
+
+
+def user_facing_generation_error(exc: Exception) -> str:
+    message = str(exc or "").strip()
+    lowered = message.lower()
+    if any(hint in lowered for hint in MODEL_REFUSAL_HINTS):
+        return "Deck generation was interrupted by a model refusal while analyzing the source packet."
+    return message or "Deck generation failed."
 
 
 def classify_source(filename: str) -> str:
@@ -296,7 +314,8 @@ def execute_graph_pipeline(
         JOBS[job_id]["presentation_json"] = final_state.get("presentation_json")
     except Exception as exc:
         JOBS[job_id]["status"] = "error"
-        JOBS[job_id]["error_msg"] = str(exc)
+        print(f"Generation job {job_id} failed: {exc}")
+        JOBS[job_id]["error_msg"] = user_facing_generation_error(exc)
 
 
 @router.post("/upload")

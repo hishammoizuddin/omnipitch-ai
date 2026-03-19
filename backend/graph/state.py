@@ -10,6 +10,10 @@ class AgentState(TypedDict):
     key_message: str
     theme_vibe: str
     parsed_architecture: str
+    source_facts: List[str]
+    quantified_signals: List[str]
+    strategic_priorities: List[str]
+    open_questions: List[str]
     business_value: List[str]
     narrative_structure: dict
     presentation_json: dict

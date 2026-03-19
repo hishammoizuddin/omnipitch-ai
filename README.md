@@ -63,46 +63,91 @@ graph TD
 ## 🚀 Getting Started
 
 ### **Prerequisites**
-- Python 3.10+
+- Python 3.9+
 - Node.js 18+
-- OpenAI API Key
-- Pinecone API Key
+- An OpenAI API key
+- A `SECRET_KEY` for auth
+- Pinecone API key is optional but recommended for retrieval-enhanced narrative context
 
-### **1. Backend Setup**
-Navigate to the `/backend` directory:
+### **1. Clone and enter the project**
 ```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
+git clone <your-repo-url>
+cd omnipitchai
+```
 
-# Install dependencies
+### **2. Start the backend**
+Open a terminal in `/backend`:
+```bash
+cd backend
+
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Configure environment
+# Create the backend env file
 cp .env.example .env
-# Edit .env and add your API keys
 ```
 
-### **2. Frontend Setup**
-Navigate to the `/frontend` directory:
+Update `backend/.env` with at least:
+```ini
+OPENAI_API_KEY=your_openai_key_here
+SECRET_KEY=replace_me_with_a_long_random_string
+DATABASE_URL=sqlite:///./omnipitchai.db
+PINECONE_API_KEY=your_pinecone_key_here
+```
+
+Then run the API:
 ```bash
-# Install dependencies
+python main.py
+```
+
+The backend will be available at `http://localhost:8000`.
+Swagger docs will be available at `http://localhost:8000/docs`.
+
+### **3. Start the frontend**
+Open a second terminal in `/frontend`:
+```bash
+cd frontend
+
+# Install Node dependencies
 npm install
 
-# Run development server
+# Optional: only needed if your backend is not on localhost:8000
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env.local
+
+# Start the Vite dev server
 npm run dev
 ```
+
+The frontend will be available at `http://localhost:5173`.
+
+### **4. Run the app**
+1. Start the backend on port `8000`
+2. Start the frontend on port `5173`
+3. Open `http://localhost:5173`
+4. Register or log in
+5. Upload your source files and generate a deck
 
 ---
 
 ## 📋 Environment Variables
 
-The backend requires a `.env` file with the following:
+Backend variables in `backend/.env`:
 
 ```ini
 OPENAI_API_KEY=sk-proj-...
+SECRET_KEY=replace_me
+DATABASE_URL=sqlite:///./omnipitchai.db
 PINECONE_API_KEY=pcsk_...
-# Optional: DATABASE_URL for user persona persistence
+```
+
+Frontend variables in `frontend/.env.local`:
+
+```ini
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
 ---

@@ -1,12 +1,12 @@
 import os
 import tempfile
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_AUTO_SHAPE_TYPE, MSO_CONNECTOR
-from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.util import Inches, Pt
 
 
@@ -85,6 +85,10 @@ def resolve_theme(theme_vibe: str) -> ThemeSpec:
     )
 
 
+def accent_for_tone(theme: ThemeSpec, tone: Optional[str] = None) -> RGBColor:
+    return theme.accent_alt if tone == "secondary" else theme.accent
+
+
 def style_paragraph(paragraph, theme: ThemeSpec, font_size: int, color: RGBColor = None, bold: bool = False, font_name: str = None, align=PP_ALIGN.LEFT):
     paragraph.alignment = align
     if not paragraph.runs:
@@ -95,6 +99,10 @@ def style_paragraph(paragraph, theme: ThemeSpec, font_size: int, color: RGBColor
         run.font.size = Pt(font_size)
         run.font.bold = bold
         run.font.color.rgb = color or theme.text
+
+
+def ensure_min_length(length, minimum=Inches(0.08)):
+    return length if length > minimum else minimum
 
 
 def add_text_box(
@@ -111,9 +119,12 @@ def add_text_box(
     font_name: str = None,
     align=PP_ALIGN.LEFT,
 ):
+    width = ensure_min_length(width)
+    height = ensure_min_length(height)
     text_box = slide.shapes.add_textbox(left, top, width, height)
     text_frame = text_box.text_frame
     text_frame.word_wrap = True
+    text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
     text_frame.vertical_anchor = MSO_ANCHOR.TOP
     text_frame.margin_left = 0
     text_frame.margin_right = 0
@@ -127,13 +138,16 @@ def add_text_box(
     return text_box
 
 
-def add_body_bullets(slide, left, top, width, height, bullets: List[str], theme: ThemeSpec):
+def add_body_bullets(slide, left, top, width, height, bullets: List[str], theme: ThemeSpec, font_size: int = 14):
     if not bullets:
         return
 
+    width = ensure_min_length(width)
+    height = ensure_min_length(height)
     text_box = slide.shapes.add_textbox(left, top, width, height)
     text_frame = text_box.text_frame
     text_frame.word_wrap = True
+    text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
     text_frame.vertical_anchor = MSO_ANCHOR.TOP
     text_frame.margin_left = 0
     text_frame.margin_right = 0
@@ -146,11 +160,11 @@ def add_body_bullets(slide, left, top, width, height, bullets: List[str], theme:
         paragraph.text = bullet
         paragraph.level = 0
         paragraph.space_after = Pt(10)
-        style_paragraph(paragraph, theme, 15, color=theme.text)
+        style_paragraph(paragraph, theme, font_size, color=theme.text)
         paragraph.text = f"• {paragraph.text}"
 
 
-def add_card(slide, left, top, width, height, title: str, body: str, theme: ThemeSpec, accent: RGBColor = None):
+def add_card(slide, left, top, width, height, title: str, body: str, theme: ThemeSpec, accent: RGBColor = None, compact: bool = False):
     card = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, left, top, width, height)
     card.fill.solid()
     card.fill.fore_color.rgb = theme.surface
@@ -158,23 +172,59 @@ def add_card(slide, left, top, width, height, title: str, body: str, theme: Them
     card.line.color.rgb = accent or theme.accent
     card.line.transparency = 0.45
 
-    title_box = add_text_box(slide, left + Inches(0.18), top + Inches(0.16), width - Inches(0.36), Inches(0.42), title, theme, 14, color=accent or theme.accent, bold=True)
+    inset = Inches(0.16 if compact else 0.18)
+    title_height = Inches(0.26 if compact else 0.42)
+    body_top = Inches(0.42 if compact else 0.56)
+    body_height = height - Inches(0.56 if compact else 0.72)
+
+    title_box = add_text_box(
+        slide,
+        left + inset,
+        top + Inches(0.14 if compact else 0.16),
+        width - (inset * 2),
+        title_height,
+        title,
+        theme,
+        10 if compact else 14,
+        color=accent or theme.accent,
+        bold=True,
+    )
     title_box.text_frame.vertical_anchor = MSO_ANCHOR.TOP
-    body_box = add_text_box(slide, left + Inches(0.18), top + Inches(0.56), width - Inches(0.36), height - Inches(0.72), body, theme, 15, color=theme.text, font_name=theme.body_font)
+    body_box = add_text_box(
+        slide,
+        left + inset,
+        top + body_top,
+        width - (inset * 2),
+        body_height,
+        body,
+        theme,
+        11 if compact else 14,
+        color=theme.text,
+        font_name=theme.body_font,
+    )
     body_box.text_frame.word_wrap = True
     return card
 
 
-def add_metric_card(slide, left, top, width, height, metric: Dict[str, str], theme: ThemeSpec):
+def add_metric_card(slide, left, top, width, height, metric: Dict[str, str], theme: ThemeSpec, accent: RGBColor = None, compact: bool = False):
+    accent_color = accent or theme.accent
     card = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, left, top, width, height)
     card.fill.solid()
     card.fill.fore_color.rgb = theme.surface
-    card.line.color.rgb = theme.accent
+    card.line.color.rgb = accent_color
     card.line.transparency = 0.35
 
-    add_text_box(slide, left + Inches(0.16), top + Inches(0.16), width - Inches(0.32), Inches(0.34), metric.get("label", "Metric"), theme, 12, color=theme.muted, bold=True)
-    add_text_box(slide, left + Inches(0.16), top + Inches(0.48), width - Inches(0.32), Inches(0.74), metric.get("value", "Signal"), theme, 30, color=theme.accent, bold=True, font_name=theme.title_font)
-    add_text_box(slide, left + Inches(0.16), top + Inches(1.18), width - Inches(0.32), height - Inches(1.34), metric.get("detail", ""), theme, 13, color=theme.text)
+    label_top = Inches(0.14 if compact else 0.16)
+    label_height = Inches(0.18 if compact else 0.34)
+    value_top = Inches(0.34 if compact else 0.48)
+    value_height = Inches(0.34 if compact else 0.74)
+    detail_top = Inches(0.72 if compact else 1.18)
+    detail_height = height - Inches(0.84 if compact else 1.34)
+
+    add_text_box(slide, left + Inches(0.16), top + label_top, width - Inches(0.32), label_height, metric.get("label", "Metric"), theme, 10 if compact else 12, color=theme.muted, bold=True)
+    add_text_box(slide, left + Inches(0.16), top + value_top, width - Inches(0.32), value_height, metric.get("value", "Signal"), theme, 18 if compact else 30, color=accent_color, bold=True, font_name=theme.title_font)
+    if detail_height > Inches(0.08):
+        add_text_box(slide, left + Inches(0.16), top + detail_top, width - Inches(0.32), detail_height, metric.get("detail", ""), theme, 10 if compact else 13, color=theme.text)
     return card
 
 
@@ -184,13 +234,13 @@ def apply_background(slide, width, height, theme: ThemeSpec):
     background.fill.fore_color.rgb = theme.background
     background.line.fill.background()
 
-    orb_one = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, Inches(-0.8), Inches(-0.8), Inches(3.2), Inches(3.2))
+    orb_one = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, Inches(0.15), Inches(0.12), Inches(2.75), Inches(2.75))
     orb_one.fill.solid()
     orb_one.fill.fore_color.rgb = theme.accent
     orb_one.fill.transparency = 0.84
     orb_one.line.fill.background()
 
-    orb_two = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, width - Inches(2.2), height - Inches(2.6), Inches(3), Inches(3))
+    orb_two = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, width - Inches(2.65), height - Inches(2.35), Inches(2.25), Inches(2.25))
     orb_two.fill.solid()
     orb_two.fill.fore_color.rgb = theme.accent_alt
     orb_two.fill.transparency = 0.9
@@ -200,8 +250,8 @@ def apply_background(slide, width, height, theme: ThemeSpec):
 def add_slide_chrome(slide, slide_data: Dict[str, Any], theme: ThemeSpec, width, height, slide_number: int):
     add_text_box(slide, Inches(0.7), Inches(0.45), Inches(2.6), Inches(0.28), slide_data.get("section_label", "Strategy").upper(), theme, 10, color=theme.accent, bold=True)
     add_text_box(slide, Inches(0.7), Inches(0.78), Inches(10), Inches(0.48), slide_data.get("title", "Executive Insight"), theme, 13, color=theme.muted, bold=True)
-    add_text_box(slide, Inches(0.7), Inches(1.18), Inches(8.6), Inches(0.8), slide_data.get("headline", slide_data.get("title", "")), theme, 28, color=theme.text, bold=True, font_name=theme.title_font)
-    add_text_box(slide, Inches(0.7), Inches(1.95), Inches(8.8), Inches(0.56), slide_data.get("subheadline", ""), theme, 15, color=theme.muted)
+    add_text_box(slide, Inches(0.7), Inches(1.18), Inches(8.6), Inches(0.74), slide_data.get("headline", slide_data.get("title", "")), theme, 26, color=theme.text, bold=True, font_name=theme.title_font)
+    add_text_box(slide, Inches(0.7), Inches(1.92), Inches(8.8), Inches(0.5), slide_data.get("subheadline", ""), theme, 14, color=theme.muted)
     accent_rule = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(0.7), Inches(2.42), Inches(1.15), Inches(0.06))
     accent_rule.fill.solid()
     accent_rule.fill.fore_color.rgb = theme.accent
@@ -238,15 +288,80 @@ def normalize_steps(slide_data: Dict[str, Any]) -> List[str]:
     return (slide_data.get("bullets") or [])[:4]
 
 
+def get_render_payload(slide_data: Dict[str, Any]) -> Dict[str, Any]:
+    return slide_data.get("render_payload") or {}
+
+
+def get_feature_cards(slide_data: Dict[str, Any]) -> List[Dict[str, str]]:
+    payload_cards = get_render_payload(slide_data).get("feature_cards") or []
+    if payload_cards:
+        return payload_cards[:4]
+    return normalize_cards(slide_data)[:4]
+
+
+def get_metric_cards(slide_data: Dict[str, Any]) -> List[Dict[str, str]]:
+    payload_metrics = get_render_payload(slide_data).get("metric_cards") or []
+    if payload_metrics:
+        return payload_metrics[:3]
+    return normalize_metrics(slide_data)[:3]
+
+
+def get_step_cards(slide_data: Dict[str, Any], label_builder) -> List[Dict[str, str]]:
+    payload_steps = get_render_payload(slide_data).get("step_cards") or []
+    if payload_steps:
+        return payload_steps
+    return [
+        {"title": label_builder(index), "body": step, "tone": "primary" if index % 2 == 0 else "secondary"}
+        for index, step in enumerate(normalize_steps(slide_data))
+    ]
+
+
+def get_comparison_cards(slide_data: Dict[str, Any]) -> List[Dict[str, str]]:
+    payload_cards = get_render_payload(slide_data).get("comparison_cards") or []
+    if len(payload_cards) >= 2:
+        return payload_cards[:2]
+
+    cards = normalize_cards(slide_data)[:2]
+    left_card = cards[0] if cards else {"title": "Current State", "body": (slide_data.get("bullets") or ["Current position"])[0], "tone": "primary"}
+    right_card = cards[1] if len(cards) > 1 else {"title": "Future State", "body": (slide_data.get("bullets") or ["Future position"])[-1], "tone": "secondary"}
+    return [left_card, right_card]
+
+
+def get_supporting_card(slide_data: Dict[str, Any], fallback_title: str, fallback_body: str) -> Dict[str, str]:
+    payload_card = get_render_payload(slide_data).get("supporting_card")
+    if payload_card:
+        return payload_card
+    return {"title": fallback_title, "body": fallback_body, "tone": "secondary"}
+
+
+def get_supporting_cards(slide_data: Dict[str, Any], label_builder) -> List[Dict[str, str]]:
+    payload_cards = get_render_payload(slide_data).get("supporting_cards") or []
+    if payload_cards:
+        return payload_cards[:3]
+    return [
+        {"title": label_builder(index), "body": bullet, "tone": "primary" if index % 2 == 0 else "secondary"}
+        for index, bullet in enumerate((slide_data.get("bullets") or [])[:3])
+    ]
+
+
 def render_hero(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
     left_width = Inches(6.1)
     right_x = Inches(7.15)
+    payload = get_render_payload(slide_data)
+    hero_quote = payload.get("lead_quote") or slide_data.get("quote") or slide_data.get("headline", "")
+    hero_bullets = payload.get("bullet_points") or (slide_data.get("bullets") or [])[:4]
+    thesis_panel = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(0.7), Inches(2.75), left_width, Inches(3.15))
+    thesis_panel.fill.solid()
+    thesis_panel.fill.fore_color.rgb = theme.surface
+    thesis_panel.fill.transparency = 0.03
+    thesis_panel.line.color.rgb = theme.accent
+    thesis_panel.line.transparency = 0.55
 
-    add_text_box(slide, Inches(0.7), Inches(2.75), left_width, Inches(0.8), slide_data.get("quote") or slide_data.get("headline", ""), theme, 32, color=theme.text, bold=True, font_name=theme.title_font)
-    add_body_bullets(slide, Inches(0.72), Inches(3.65), left_width - Inches(0.3), Inches(2.2), (slide_data.get("bullets") or [])[:4], theme)
+    add_text_box(slide, Inches(0.98), Inches(3.02), Inches(5.45), Inches(1.0), hero_quote, theme, 25, color=theme.text, bold=True, font_name=theme.title_font)
+    add_body_bullets(slide, Inches(0.98), Inches(4.18), Inches(5.15), Inches(1.28), hero_bullets[:3], theme, font_size=13)
 
-    cards = normalize_cards(slide_data)[:2]
-    metrics = normalize_metrics(slide_data)[:2]
+    cards = get_feature_cards(slide_data)[:2]
+    metrics = get_metric_cards(slide_data)[:2]
 
     hero_panel = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, right_x, Inches(2.6), Inches(2.95), Inches(3.35))
     hero_panel.fill.solid()
@@ -258,14 +373,35 @@ def render_hero(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
 
     if metrics:
         for index, metric in enumerate(metrics):
-            add_metric_card(slide, right_x + Inches(0.16), Inches(3.2 + (index * 1.18)), Inches(2.6), Inches(1.04), metric, theme)
+            add_metric_card(
+                slide,
+                right_x + Inches(0.16),
+                Inches(3.18 + (index * 1.18)),
+                Inches(2.6),
+                Inches(1.1),
+                metric,
+                theme,
+                accent=accent_for_tone(theme, metric.get("tone")),
+                compact=True,
+            )
     else:
         for index, card in enumerate(cards):
-            add_card(slide, right_x + Inches(0.16), Inches(3.22 + (index * 1.18)), Inches(2.6), Inches(1.04), card.get("title", "Insight"), card.get("body", ""), theme, accent=theme.accent_alt)
+            add_card(
+                slide,
+                right_x + Inches(0.16),
+                Inches(3.22 + (index * 1.18)),
+                Inches(2.6),
+                Inches(1.04),
+                card.get("title", "Insight"),
+                card.get("body", ""),
+                theme,
+                accent=accent_for_tone(theme, card.get("tone")),
+                compact=True,
+            )
 
 
 def render_insight_grid(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
-    cards = normalize_cards(slide_data)[:4]
+    cards = get_feature_cards(slide_data)[:4]
     positions = [
         (Inches(0.7), Inches(2.7)),
         (Inches(5.12), Inches(2.7)),
@@ -274,14 +410,39 @@ def render_insight_grid(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
     ]
     for index, card_data in enumerate(cards):
         left, top = positions[index]
-        add_card(slide, left, top, Inches(3.95), Inches(1.72), card_data.get("title", "Insight"), card_data.get("body", ""), theme, accent=theme.accent if index % 2 == 0 else theme.accent_alt)
+        add_card(
+            slide,
+            left,
+            top,
+            Inches(3.95),
+            Inches(1.72),
+            card_data.get("title", "Insight"),
+            card_data.get("body", ""),
+            theme,
+            accent=accent_for_tone(theme, card_data.get("tone")),
+        )
 
 
 def render_metrics_band(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
-    metrics = normalize_metrics(slide_data)[:3]
+    metrics = get_metric_cards(slide_data)[:3]
     card_width = Inches(3.02)
     for index, metric in enumerate(metrics):
-        add_metric_card(slide, Inches(0.7) + (card_width + Inches(0.2)) * index, Inches(2.75), card_width, Inches(1.82), metric, theme)
+        add_metric_card(
+            slide,
+            Inches(0.7) + (card_width + Inches(0.2)) * index,
+            Inches(2.75),
+            card_width,
+            Inches(1.82),
+            metric,
+            theme,
+            accent=accent_for_tone(theme, metric.get("tone")),
+        )
+
+    supporting_card = get_supporting_card(
+        slide_data,
+        slide_data.get("quote") or "Why this matters now",
+        " • ".join((slide_data.get("bullets") or [])[:3]) or slide_data.get("subheadline", ""),
+    )
 
     add_card(
         slide,
@@ -289,15 +450,15 @@ def render_metrics_band(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
         Inches(4.95),
         Inches(9.7),
         Inches(1.55),
-        slide_data.get("quote") or "Why this matters now",
-        " • ".join((slide_data.get("bullets") or [])[:3]) or slide_data.get("subheadline", ""),
+        supporting_card.get("title", "Why this matters now"),
+        supporting_card.get("body", ""),
         theme,
-        accent=theme.accent_alt,
+        accent=accent_for_tone(theme, supporting_card.get("tone")),
     )
 
 
 def render_process_flow(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
-    steps = normalize_steps(slide_data)[:4]
+    steps = get_step_cards(slide_data, lambda index: str(index + 1))[:4]
     start_left = Inches(0.85)
     step_width = Inches(2.15)
     step_height = Inches(1.25)
@@ -311,19 +472,26 @@ def render_process_flow(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
 
     for index, step in enumerate(steps):
         left = start_left + index * (step_width + gap)
+        accent = accent_for_tone(theme, step.get("tone"))
         card = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, left, Inches(3.1), step_width, step_height)
         card.fill.solid()
         card.fill.fore_color.rgb = theme.surface
-        card.line.color.rgb = theme.accent if index % 2 == 0 else theme.accent_alt
+        card.line.color.rgb = accent
         card.line.transparency = 0.35
 
         badge = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, left + Inches(0.08), Inches(3.22), Inches(0.34), Inches(0.34))
         badge.fill.solid()
-        badge.fill.fore_color.rgb = theme.accent if index % 2 == 0 else theme.accent_alt
+        badge.fill.fore_color.rgb = accent
         badge.line.fill.background()
-        add_text_box(slide, left + Inches(0.11), Inches(3.255), Inches(0.28), Inches(0.2), str(index + 1), theme, 10, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
+        add_text_box(slide, left + Inches(0.11), Inches(3.255), Inches(0.28), Inches(0.2), step.get("title", str(index + 1)), theme, 10, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
 
-        add_text_box(slide, left + Inches(0.52), Inches(3.22), Inches(1.45), Inches(0.86), step, theme, 15, color=theme.text, bold=True)
+        add_text_box(slide, left + Inches(0.52), Inches(3.22), Inches(1.45), Inches(0.86), step.get("body", ""), theme, 15, color=theme.text, bold=True)
+
+    supporting_card = get_supporting_card(
+        slide_data,
+        slide_data.get("accent") or "Execution Signal",
+        " • ".join((slide_data.get("bullets") or [])[:3]) or slide_data.get("subheadline", ""),
+    )
 
     add_card(
         slide,
@@ -331,31 +499,44 @@ def render_process_flow(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
         Inches(5.18),
         Inches(9.7),
         Inches(1.28),
-        slide_data.get("accent") or "Execution Signal",
-        " • ".join((slide_data.get("bullets") or [])[:3]) or slide_data.get("subheadline", ""),
+        supporting_card.get("title", slide_data.get("accent") or "Execution Signal"),
+        supporting_card.get("body", ""),
         theme,
-        accent=theme.accent_alt,
+        accent=accent_for_tone(theme, supporting_card.get("tone")),
+        compact=True,
     )
 
 
 def render_comparison(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
-    cards = normalize_cards(slide_data)[:2]
-    left_card = cards[0] if cards else {"title": "Current State", "body": (slide_data.get("bullets") or ["Current position"])[0]}
-    right_card = cards[1] if len(cards) > 1 else {"title": "Future State", "body": (slide_data.get("bullets") or ["Future position"])[-1]}
+    left_card, right_card = get_comparison_cards(slide_data)
+    supporting_cards = get_supporting_cards(slide_data, lambda index: f"Move {index + 1}")
 
-    add_card(slide, Inches(0.7), Inches(2.75), Inches(4.6), Inches(2.55), left_card.get("title", "Current State"), left_card.get("body", ""), theme, accent=theme.accent)
-    add_card(slide, Inches(5.8), Inches(2.75), Inches(4.6), Inches(2.55), right_card.get("title", "Future State"), right_card.get("body", ""), theme, accent=theme.accent_alt)
+    add_card(slide, Inches(0.7), Inches(2.75), Inches(4.6), Inches(2.55), left_card.get("title", "Current State"), left_card.get("body", ""), theme, accent=accent_for_tone(theme, left_card.get("tone")))
+    add_card(slide, Inches(5.8), Inches(2.75), Inches(4.6), Inches(2.55), right_card.get("title", "Future State"), right_card.get("body", ""), theme, accent=accent_for_tone(theme, right_card.get("tone")))
 
     accent_bar = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.CHEVRON, Inches(4.85), Inches(3.62), Inches(0.8), Inches(0.5))
     accent_bar.fill.solid()
     accent_bar.fill.fore_color.rgb = theme.accent_alt
     accent_bar.line.fill.background()
 
-    add_body_bullets(slide, Inches(0.72), Inches(5.55), Inches(9.6), Inches(1.1), (slide_data.get("bullets") or [])[:3], theme)
+    for index, card in enumerate(supporting_cards[:3]):
+        add_card(
+            slide,
+            Inches(0.7) + Inches(3.32) * index,
+            Inches(5.42),
+            Inches(3.08),
+            Inches(1.06),
+            card.get("title", f"Move {index + 1}"),
+            card.get("body", ""),
+            theme,
+            accent=accent_for_tone(theme, card.get("tone")),
+            compact=True,
+        )
 
 
 def render_roadmap(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
-    milestones = normalize_steps(slide_data)[:3]
+    milestones = get_step_cards(slide_data, lambda index: f"Phase {index + 1}")[:3]
+    supporting_cards = get_supporting_cards(slide_data, lambda _index: "Checkpoint")
     left_positions = [Inches(0.8), Inches(3.85), Inches(6.9)]
 
     track = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Inches(1.4), Inches(4.55), Inches(9.4), Inches(4.55))
@@ -365,22 +546,47 @@ def render_roadmap(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
 
     for index, milestone in enumerate(milestones):
         center = left_positions[index] + Inches(1.1)
+        accent = accent_for_tone(theme, milestone.get("tone"))
         dot = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, center, Inches(4.32), Inches(0.45), Inches(0.45))
         dot.fill.solid()
-        dot.fill.fore_color.rgb = theme.accent if index % 2 == 0 else theme.accent_alt
+        dot.fill.fore_color.rgb = accent
         dot.line.fill.background()
-        add_card(slide, left_positions[index], Inches(2.95), Inches(2.45), Inches(1.3), f"Phase {index + 1}", milestone, theme, accent=theme.accent if index % 2 == 0 else theme.accent_alt)
+        add_card(slide, left_positions[index], Inches(2.95), Inches(2.45), Inches(1.3), milestone.get("title", f"Phase {index + 1}"), milestone.get("body", ""), theme, accent=accent, compact=True)
 
-    add_body_bullets(slide, Inches(0.72), Inches(5.25), Inches(9.6), Inches(1.1), (slide_data.get("bullets") or [])[:3], theme)
+    for index, card in enumerate(supporting_cards[:3]):
+        add_card(
+            slide,
+            Inches(0.7) + Inches(3.32) * index,
+            Inches(5.3),
+            Inches(3.08),
+            Inches(1.06),
+            card.get("title", "Checkpoint"),
+            card.get("body", ""),
+            theme,
+            accent=accent_for_tone(theme, card.get("tone")),
+            compact=True,
+        )
 
 
 def render_closing(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
-    add_text_box(slide, Inches(0.9), Inches(2.65), Inches(8.8), Inches(0.92), slide_data.get("quote") or slide_data.get("headline", ""), theme, 34, color=theme.text, bold=True, font_name=theme.title_font)
+    payload = get_render_payload(slide_data)
+    priorities = get_supporting_cards(slide_data, lambda index: f"Priority {index + 1}")
+    add_text_box(slide, Inches(0.9), Inches(2.65), Inches(8.8), Inches(0.92), payload.get("lead_quote") or slide_data.get("quote") or slide_data.get("headline", ""), theme, 34, color=theme.text, bold=True, font_name=theme.title_font)
     add_text_box(slide, Inches(0.92), Inches(3.7), Inches(8.6), Inches(0.6), slide_data.get("subheadline", ""), theme, 16, color=theme.muted)
 
-    bullets = (slide_data.get("bullets") or [])[:3]
-    for index, bullet in enumerate(bullets):
-        add_card(slide, Inches(0.9) + Inches(3.15) * index, Inches(4.72), Inches(2.85), Inches(1.2), f"Move {index + 1}", bullet, theme, accent=theme.accent if index % 2 == 0 else theme.accent_alt)
+    for index, card in enumerate(priorities[:3]):
+        add_card(
+            slide,
+            Inches(0.9) + Inches(3.15) * index,
+            Inches(4.72),
+            Inches(2.85),
+            Inches(1.2),
+            card.get("title", f"Priority {index + 1}"),
+            card.get("body", ""),
+            theme,
+            accent=accent_for_tone(theme, card.get("tone")),
+            compact=True,
+        )
 
 
 def render_content_slide(slide, slide_data: Dict[str, Any], theme: ThemeSpec, width, height, slide_number: int):
@@ -416,21 +622,21 @@ def render_cover_slide(prs: Presentation, presentation_json: Dict[str, Any], the
     panel.line.color.rgb = theme.accent
     panel.line.transparency = 0.6
 
-    add_text_box(slide, Inches(1.05), Inches(1.2), Inches(4.3), Inches(0.3), "EXECUTIVE NARRATIVE DECK", theme, 11, color=theme.accent, bold=True)
+    cover_payload = presentation_json.get("cover_payload") or {}
+    add_text_box(slide, Inches(1.05), Inches(1.2), Inches(4.3), Inches(0.3), (cover_payload.get("eyebrow") or "EXECUTIVE NARRATIVE DECK").upper(), theme, 11, color=theme.accent, bold=True)
     add_text_box(slide, Inches(1.05), Inches(1.7), Inches(4.45), Inches(1.4), presentation_json.get("deck_title", "Executive Strategy Deck"), theme, 32, color=theme.text, bold=True, font_name=theme.title_font)
     add_text_box(slide, Inches(1.05), Inches(3.25), Inches(4.3), Inches(0.8), presentation_json.get("deck_subtitle", ""), theme, 16, color=theme.muted)
 
-    first_slide = (presentation_json.get("slides") or [{}])[0]
-    highlight_cards = normalize_cards(first_slide)[:2]
+    highlight_cards = (cover_payload.get("highlight_cards") or [])[:2]
     if not highlight_cards:
         highlight_cards = [
-            {"title": "Audience Lens", "body": presentation_json.get("theme_vibe", "Professional & Executive")},
-            {"title": "Deck Style", "body": theme.name},
+            {"title": "Audience Lens", "body": presentation_json.get("theme_vibe", "Professional & Executive"), "tone": "secondary"},
+            {"title": "Deck Style", "body": theme.name, "tone": "primary"},
         ]
 
-    add_card(slide, Inches(6.4), Inches(1.25), Inches(3.6), Inches(2.0), highlight_cards[0].get("title", "Focus"), highlight_cards[0].get("body", ""), theme, accent=theme.accent_alt)
+    add_card(slide, Inches(6.4), Inches(1.25), Inches(3.6), Inches(2.0), highlight_cards[0].get("title", "Focus"), highlight_cards[0].get("body", ""), theme, accent=accent_for_tone(theme, highlight_cards[0].get("tone")))
     if len(highlight_cards) > 1:
-        add_card(slide, Inches(6.4), Inches(3.55), Inches(3.6), Inches(2.0), highlight_cards[1].get("title", "Impact"), highlight_cards[1].get("body", ""), theme, accent=theme.accent)
+        add_card(slide, Inches(6.4), Inches(3.55), Inches(3.6), Inches(2.0), highlight_cards[1].get("title", "Impact"), highlight_cards[1].get("body", ""), theme, accent=accent_for_tone(theme, highlight_cards[1].get("tone")))
 
 
 def render_closing_slide(prs: Presentation, presentation_json: Dict[str, Any], theme: ThemeSpec):
@@ -439,15 +645,16 @@ def render_closing_slide(prs: Presentation, presentation_json: Dict[str, Any], t
     height = prs.slide_height
     apply_background(slide, width, height, theme)
 
-    add_text_box(slide, Inches(1.0), Inches(2.1), Inches(8.8), Inches(0.4), "NEXT MOVE", theme, 12, color=theme.accent, bold=True)
-    add_text_box(slide, Inches(1.0), Inches(2.7), Inches(8.8), Inches(1.0), "Turn the strategy into execution.", theme, 36, color=theme.text, bold=True, font_name=theme.title_font, align=PP_ALIGN.CENTER)
-    add_text_box(slide, Inches(1.6), Inches(3.95), Inches(7.6), Inches(0.6), presentation_json.get("deck_subtitle", "Board-ready narrative and actionable next steps."), theme, 16, color=theme.muted, align=PP_ALIGN.CENTER)
+    closing_payload = presentation_json.get("closing_payload") or {}
+    add_text_box(slide, Inches(1.0), Inches(2.1), Inches(8.8), Inches(0.4), (closing_payload.get("eyebrow") or "NEXT MOVE").upper(), theme, 12, color=theme.accent, bold=True)
+    add_text_box(slide, Inches(1.0), Inches(2.7), Inches(8.8), Inches(1.0), closing_payload.get("headline", "Turn the strategy into execution."), theme, 36, color=theme.text, bold=True, font_name=theme.title_font, align=PP_ALIGN.CENTER)
+    add_text_box(slide, Inches(1.6), Inches(3.95), Inches(7.6), Inches(0.6), closing_payload.get("subheadline", presentation_json.get("deck_subtitle", "Board-ready narrative and actionable next steps.")), theme, 16, color=theme.muted, align=PP_ALIGN.CENTER)
 
     pill = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(3.35), Inches(5.0), Inches(3.3), Inches(0.68))
     pill.fill.solid()
     pill.fill.fore_color.rgb = theme.accent
     pill.line.fill.background()
-    add_text_box(slide, Inches(3.55), Inches(5.18), Inches(2.9), Inches(0.22), presentation_json.get("deck_title", "Executive Strategy Deck"), theme, 12, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
+    add_text_box(slide, Inches(3.55), Inches(5.18), Inches(2.9), Inches(0.22), closing_payload.get("pill_text", presentation_json.get("deck_title", "Executive Strategy Deck")), theme, 12, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
 
 
 def build_pptx(presentation_json: Dict[str, Any], org_name: str = "Enterprise", theme_vibe: str = "Corporate") -> str:
