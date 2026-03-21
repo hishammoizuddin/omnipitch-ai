@@ -57,7 +57,7 @@ The project operates universally under a decoupled, scalable structure.
 
 ### 3.2. Backend Ecosystem
 - **Core Framework:** FastAPI serving RESTful routes synchronously and kicking off background thread processing for AI tasks.
-- **Database:** SQLAlchemy (SQLite/PostgreSQL) handling purely the state of User Authentications and specific Persona details.
+- **Database:** SQLAlchemy (PostgreSQL) handling purely the state of User Authentications and specific Persona details.
 - **Memory Store:** Heavy reliance on global dictionaries acting as an in-memory job status tracker to power the rapid frontend polling.
 
 ---

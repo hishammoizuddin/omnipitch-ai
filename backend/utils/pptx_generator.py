@@ -172,37 +172,25 @@ def add_card(slide, left, top, width, height, title: str, body: str, theme: Them
     card.line.color.rgb = accent or theme.accent
     card.line.transparency = 0.45
 
-    inset = Inches(0.16 if compact else 0.18)
-    title_height = Inches(0.26 if compact else 0.42)
-    body_top = Inches(0.42 if compact else 0.56)
-    body_height = height - Inches(0.56 if compact else 0.72)
+    tf = card.text_frame
+    tf.clear()
+    inset = Inches(0.16 if compact else 0.22)
+    tf.margin_left = inset
+    tf.margin_top = inset
+    tf.margin_right = inset
+    tf.margin_bottom = inset
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.word_wrap = True
 
-    title_box = add_text_box(
-        slide,
-        left + inset,
-        top + Inches(0.14 if compact else 0.16),
-        width - (inset * 2),
-        title_height,
-        title,
-        theme,
-        10 if compact else 14,
-        color=accent or theme.accent,
-        bold=True,
-    )
-    title_box.text_frame.vertical_anchor = MSO_ANCHOR.TOP
-    body_box = add_text_box(
-        slide,
-        left + inset,
-        top + body_top,
-        width - (inset * 2),
-        body_height,
-        body,
-        theme,
-        11 if compact else 14,
-        color=theme.text,
-        font_name=theme.body_font,
-    )
-    body_box.text_frame.word_wrap = True
+    p_title = tf.paragraphs[0]
+    p_title.text = title
+    style_paragraph(p_title, theme, 10 if compact else 14, color=accent or theme.accent, bold=True)
+    p_title.space_after = Pt(4 if compact else 8)
+
+    p_body = tf.add_paragraph()
+    p_body.text = body
+    style_paragraph(p_body, theme, 11 if compact else 14, color=theme.text, font_name=theme.body_font)
+
     return card
 
 
@@ -214,17 +202,32 @@ def add_metric_card(slide, left, top, width, height, metric: Dict[str, str], the
     card.line.color.rgb = accent_color
     card.line.transparency = 0.35
 
-    label_top = Inches(0.14 if compact else 0.16)
-    label_height = Inches(0.18 if compact else 0.34)
-    value_top = Inches(0.34 if compact else 0.48)
-    value_height = Inches(0.34 if compact else 0.74)
-    detail_top = Inches(0.72 if compact else 1.18)
-    detail_height = height - Inches(0.84 if compact else 1.34)
+    tf = card.text_frame
+    tf.clear()
+    inset = Inches(0.16 if compact else 0.22)
+    tf.margin_left = inset
+    tf.margin_top = inset
+    tf.margin_right = inset
+    tf.margin_bottom = inset
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.word_wrap = True
 
-    add_text_box(slide, left + Inches(0.16), top + label_top, width - Inches(0.32), label_height, metric.get("label", "Metric"), theme, 10 if compact else 12, color=theme.muted, bold=True)
-    add_text_box(slide, left + Inches(0.16), top + value_top, width - Inches(0.32), value_height, metric.get("value", "Signal"), theme, 18 if compact else 30, color=accent_color, bold=True, font_name=theme.title_font)
-    if detail_height > Inches(0.08):
-        add_text_box(slide, left + Inches(0.16), top + detail_top, width - Inches(0.32), detail_height, metric.get("detail", ""), theme, 10 if compact else 13, color=theme.text)
+    p_label = tf.paragraphs[0]
+    p_label.text = metric.get("label", "Metric")
+    style_paragraph(p_label, theme, 10 if compact else 12, color=theme.muted, bold=True)
+    p_label.space_after = Pt(2 if compact else 6)
+
+    p_value = tf.add_paragraph()
+    p_value.text = metric.get("value", "Signal")
+    style_paragraph(p_value, theme, 18 if compact else 30, color=accent_color, bold=True, font_name=theme.title_font)
+    p_value.space_after = Pt(2 if compact else 6)
+
+    detail = metric.get("detail", "")
+    if detail:
+        p_detail = tf.add_paragraph()
+        p_detail.text = detail
+        style_paragraph(p_detail, theme, 10 if compact else 13, color=theme.text)
+
     return card
 
 
@@ -251,7 +254,7 @@ def add_slide_chrome(slide, slide_data: Dict[str, Any], theme: ThemeSpec, width,
     add_text_box(slide, Inches(0.7), Inches(0.45), Inches(2.6), Inches(0.28), slide_data.get("section_label", "Strategy").upper(), theme, 10, color=theme.accent, bold=True)
     add_text_box(slide, Inches(0.7), Inches(0.78), Inches(10), Inches(0.48), slide_data.get("title", "Executive Insight"), theme, 13, color=theme.muted, bold=True)
     add_text_box(slide, Inches(0.7), Inches(1.18), Inches(8.6), Inches(0.74), slide_data.get("headline", slide_data.get("title", "")), theme, 26, color=theme.text, bold=True, font_name=theme.title_font)
-    add_text_box(slide, Inches(0.7), Inches(1.92), Inches(8.8), Inches(0.5), slide_data.get("subheadline", ""), theme, 14, color=theme.muted)
+    add_text_box(slide, Inches(0.7), Inches(1.95), Inches(8.8), Inches(0.56), slide_data.get("subheadline", ""), theme, 14, color=theme.muted)
     accent_rule = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.ROUNDED_RECTANGLE, Inches(0.7), Inches(2.42), Inches(1.15), Inches(0.06))
     accent_rule.fill.solid()
     accent_rule.fill.fore_color.rgb = theme.accent
@@ -479,13 +482,34 @@ def render_process_flow(slide, slide_data: Dict[str, Any], theme: ThemeSpec):
         card.line.color.rgb = accent
         card.line.transparency = 0.35
 
-        badge = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, left + Inches(0.08), Inches(3.22), Inches(0.34), Inches(0.34))
+        badge = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.OVAL, left + Inches(0.16), Inches(3.26), Inches(0.34), Inches(0.34))
         badge.fill.solid()
         badge.fill.fore_color.rgb = accent
         badge.line.fill.background()
-        add_text_box(slide, left + Inches(0.11), Inches(3.255), Inches(0.28), Inches(0.2), step.get("title", str(index + 1)), theme, 10, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
+        
+        btf = badge.text_frame
+        btf.clear()
+        btf.margin_left = 0
+        btf.margin_right = 0
+        btf.margin_top = 0
+        btf.margin_bottom = 0
+        btf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        bp = btf.paragraphs[0]
+        bp.text = step.get("title", str(index + 1))
+        style_paragraph(bp, theme, 10, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
 
-        add_text_box(slide, left + Inches(0.52), Inches(3.22), Inches(1.45), Inches(0.86), step.get("body", ""), theme, 15, color=theme.text, bold=True)
+        tf = card.text_frame
+        tf.clear()
+        tf.margin_left = Inches(0.16)
+        tf.margin_top = Inches(0.65)
+        tf.margin_right = Inches(0.16)
+        tf.margin_bottom = Inches(0.16)
+        tf.vertical_anchor = MSO_ANCHOR.TOP
+        tf.word_wrap = True
+
+        p = tf.paragraphs[0]
+        p.text = step.get("body", "")
+        style_paragraph(p, theme, 11, color=theme.text)
 
     supporting_card = get_supporting_card(
         slide_data,
@@ -654,7 +678,19 @@ def render_closing_slide(prs: Presentation, presentation_json: Dict[str, Any], t
     pill.fill.solid()
     pill.fill.fore_color.rgb = theme.accent
     pill.line.fill.background()
-    add_text_box(slide, Inches(3.55), Inches(5.18), Inches(2.9), Inches(0.22), closing_payload.get("pill_text", presentation_json.get("deck_title", "Executive Strategy Deck")), theme, 12, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
+
+    tf = pill.text_frame
+    tf.clear()
+    tf.margin_left = 0
+    tf.margin_right = 0
+    tf.margin_top = 0
+    tf.margin_bottom = 0
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.word_wrap = True
+
+    p = tf.paragraphs[0]
+    p.text = closing_payload.get("pill_text", presentation_json.get("deck_title", "Executive Strategy Deck"))
+    style_paragraph(p, theme, 12, color=theme.inverse_text, bold=True, align=PP_ALIGN.CENTER)
 
 
 def build_pptx(presentation_json: Dict[str, Any], org_name: str = "Enterprise", theme_vibe: str = "Corporate") -> str:

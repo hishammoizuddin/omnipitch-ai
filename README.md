@@ -95,7 +95,9 @@ Update `backend/.env` with at least:
 ```ini
 OPENAI_API_KEY=your_openai_key_here
 SECRET_KEY=replace_me_with_a_long_random_string
-DATABASE_URL=sqlite:///./omnipitchai.db
+DATABASE_URL=postgres://user:pass@host:port/dbname?sslmode=require
+DB_CA_CERT_PATH=ca.pem
+DB_CONNECTION_LIMIT=20
 PINECONE_API_KEY=your_pinecone_key_here
 ```
 
@@ -140,7 +142,9 @@ Backend variables in `backend/.env`:
 ```ini
 OPENAI_API_KEY=sk-proj-...
 SECRET_KEY=replace_me
-DATABASE_URL=sqlite:///./omnipitchai.db
+DATABASE_URL=postgres://user:pass@host:port/dbname?sslmode=require
+DB_CA_CERT_PATH=ca.pem
+DB_CONNECTION_LIMIT=20
 PINECONE_API_KEY=pcsk_...
 ```
 
