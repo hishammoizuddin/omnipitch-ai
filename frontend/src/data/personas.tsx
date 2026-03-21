@@ -233,6 +233,98 @@ const rawPersonas = [
     { id: 'chief_staff', title: 'Chief of Staff', desc: 'Executive alignment, board prep, strategic initiatives.', type: 'strategy', color: 1 },
     { id: 'head_talent', title: 'Head of Talent', desc: 'Employer branding, headcount planning, executive search.', type: 'users', color: 5 },
     { id: 'agile_pm', title: 'Agile Project Mgr', desc: 'Burndown charts, risk registers, sprint coordination.', type: 'pm', color: 2 },
+
+    // Education & EdTech
+    { id: 'provost', title: 'Provost', desc: 'University academic affairs, faculty tenure, and research funding.', type: 'strategy', color: 1 },
+    { id: 'dean_students', title: 'Dean of Students', desc: 'Student life, campus policies, and wellness programs.', type: 'hr', color: 4 },
+    { id: 'edtech_spec', title: 'EdTech Specialist', desc: 'LMS administration, classroom tech integration.', type: 'hardware', color: 5 },
+    { id: 'instruct_designer', title: 'Instructional Designer', desc: 'Curriculum development, multimedia learning modules.', type: 'design', color: 6 },
+    { id: 'highered_admin', title: 'Higher Ed Admin', desc: 'Admissions, alumni relations, and endowment strategy.', type: 'users', color: 0 },
+    
+    // Media, Creative & Gaming
+    { id: 'art_director', title: 'Art Director', desc: 'Visual style, brand aesthetics, and creative team management.', type: 'design', color: 3 },
+    { id: 'video_edit', title: 'Video Editor', desc: 'Post-production, motion graphics, and narrative pacing.', type: 'design', color: 5 },
+    { id: 'copywriter', title: 'Copywriter', desc: 'Ad campaigns, social media copy, and brand voice.', type: 'comms', color: 0 },
+    { id: 'animator_3d', title: '3D Animator', desc: 'Character rigging, motion capture, and cinematic rendering.', type: 'design', color: 4 },
+    { id: 'engine_prog', title: 'Engine Programmer', desc: 'Game engine architecture, memory allocation, and multithreading.', type: 'core', color: 2 },
+    { id: 'narrative_design', title: 'Narrative Designer', desc: 'Game lore, dialogue trees, and world-building.', type: 'design', color: 6 },
+    { id: 'tech_artist', title: 'Technical Artist', desc: 'Shader development, procedural generation, and pipeline tools.', type: 'tech', color: 7 },
+    { id: 'vr_content', title: 'VR Content Creator', desc: 'Immersive storytelling, 360 video, spatial audio mapping.', type: 'mobile', color: 4 },
+
+    // Healthcare IT & Life Sciences
+    { id: 'chief_med_off', title: 'Chief Medical Officer', desc: 'Clinical operations, patient safety, and medical affairs.', type: 'core', color: 0 },
+    { id: 'health_inform', title: 'Clinical Informaticist', desc: 'EHR workflows, clinical decision support systems.', type: 'data', color: 1 },
+    { id: 'health_data', title: 'Health Data Analyst', desc: 'Population health, claims data, and readmission modeling.', type: 'data', color: 6 },
+    { id: 'pharma_research', title: 'Pharmacovigilance', desc: 'Drug safety, clinical trials adverse event monitoring.', type: 'sec', color: 0 },
+    { id: 'nurse_practitioner', title: 'Nurse Practitioner', desc: 'Patient charting, diagnostics, direct-to-patient software.', type: 'users', color: 2 },
+    { id: 'telehealth_coord', title: 'Telehealth Coordinator', desc: 'Remote patient monitoring, virtual clinic triage workflows.', type: 'network', color: 5 },
+
+    // Manufacturing, Supply Chain & Retail
+    { id: 'supply_dir', title: 'Supply Chain Director', desc: 'Global sourcing, freight logistics, and inventory optimization.', type: 'network', color: 5 },
+    { id: 'mfg_eng', title: 'Manufacturing Engineer', desc: 'Assembly line efficiency, Six Sigma, and yield improvement.', type: 'ops', color: 4 },
+    { id: 'fleet_mgr', title: 'Fleet Manager', desc: 'Vehicle routing, telematics, and maintenance scheduling.', type: 'hardware', color: 7 },
+    { id: 'retail_rg_mgr', title: 'Retail Regional Mgr', desc: 'Store performance, merchandising compliance, and P&L.', type: 'growth', color: 1 },
+    { id: 'ecom_dir', title: 'E-commerce Director', desc: 'Digital storefront conversion, fulfillment strategy.', type: 'growth', color: 5 },
+    { id: 'merchandiser', title: 'Merchandiser', desc: 'Product assortment, pricing strategy, and seasonal planning.', type: 'pm', color: 6 },
+
+    // Deep Tech & Research
+    { id: 'quant_comp_res', title: 'Quantum Researcher', desc: 'Qubit coherence, quantum algorithms, and error correction.', type: 'tech', color: 2 },
+    { id: 'cv_eng', title: 'Computer Vision Eng', desc: 'Image segmentation, object tracking, and optical flow.', type: 'tech', color: 4 },
+    { id: 'nlp_sci', title: 'NLP Scientist', desc: 'Language modeling, semantic search, and entity extraction.', type: 'comms', color: 1 },
+    { id: 'materials_sci', title: 'Materials Scientist', desc: 'Nanotechnology, polymer synthesis, and material fatigue.', type: 'core', color: 7 },
+    { id: 'drone_operator', title: 'Drone Operator', desc: 'UAV photogrammetry, real-time aerial sensor data feeds.', type: 'hardware', color: 5 },
+
+    // Finance, Real Estate, Legal & Service Industries
+    { id: 'tax_dir', title: 'Director of Tax', desc: 'Corporate tax strategy, transfer pricing, and compliance.', type: 'legal', color: 0 },
+    { id: 'actuary', title: 'Actuary', desc: 'Risk modeling, insurance underwriting, and mortality tables.', type: 'pm', color: 3 },
+    { id: 'real_estate_dev', title: 'Real Estate Developer', desc: 'Site acquisition, zoning, and construction management.', type: 'arch', color: 5 },
+    { id: 'prop_mgr', title: 'Property Manager', desc: 'Tenant relations, lease administration, and facility upkeep.', type: 'hr', color: 2 },
+    { id: 'legal_eng', title: 'Legal Engineer', desc: 'Automating legal workflows, document generation API.', type: 'api', color: 0 },
+    { id: 'paralegal', title: 'Paralegal', desc: 'Case research, discovery prep, and trial documentation.', type: 'legal', color: 0 },
+    { id: 'hospitality_dir', title: 'Hospitality Director', desc: 'Guest experience, hotel revenue management, and catering.', type: 'hr', color: 6 },
+
+    // Specialized IT & Software Dev
+    { id: 'flutter_dev', title: 'Flutter Developer', desc: 'Cross-platform mobile UI, Dart, state management.', type: 'mobile', color: 4 },
+    { id: 'rust_eng', title: 'Rust Engineer', desc: 'Memory-safe systems programming, high-performance concurrency.', type: 'fast', color: 1 },
+    { id: 'graphql_arch', title: 'GraphQL Architect', desc: 'Schema federation, API resolvers, and mitigation of over-fetching.', type: 'api', color: 5 },
+    { id: 'wasm_dev', title: 'WebAssembly Dev', desc: 'Porting C++/Rust logic to blazing-fast web execution.', type: 'fast', color: 2 },
+    { id: 'sf_admin', title: 'Salesforce Admin', desc: 'Custom objects, Apex triggers, and SOQL queries.', type: 'data', color: 7 },
+    { id: 'servicenow_dev', title: 'ServiceNow Developer', desc: 'ITSM workflows, service portals, and CMDB management.', type: 'admin', color: 0 },
+
+    // Executive / Additional C-Suite
+    { id: 'cdao', title: 'Chief Data & Analytics', desc: 'Data monetization, predictive modeling governance.', type: 'data', color: 1 },
+    { id: 'chrp', title: 'Chief HR Officer', desc: 'Global workforce planning, diversity initiatives.', type: 'hr', color: 5 },
+    { id: 'cko', title: 'Chief Knowledge Officer', desc: 'Intellectual capital strategy, corporate memory networks.', type: 'arch', color: 2 },
+    { id: 'cao', title: 'Chief Admin Officer', desc: 'Cross-departmental ops, shared services, and facilities.', type: 'admin', color: 0 },
+    { id: 'chief_sustainability', title: 'Chief Sustainability', desc: 'Carbon reporting, ESG strategy, sustainable supply chain.', type: 'globe', color: 2 },
+
+    // Government, Defense & Non-Profit
+    { id: 'pol_analyst', title: 'Policy Analyst', desc: 'Legislative impact, public advocacy, and grant writing.', type: 'design', color: 3 },
+    { id: 'ngo_dir', title: 'NGO Director', desc: 'Donor relations, mission stewardship, and global outreach.', type: 'global', color: 6 },
+    { id: 'defense_contr', title: 'Defense Contractor', desc: 'Clearance-level engineering, C4ISR systems integration.', type: 'sec', color: 0 },
+    { id: 'intel_analyst', title: 'Intelligence Analyst', desc: 'OSINT, threat intelligence feeds, and geopolitical risk.', type: 'product', color: 3 },
+
+    // Freelancer / Solopreneur
+    { id: 'indie_hacker', title: 'Indie Hacker', desc: 'Bootstrapping micro-SaaS, rapid prototyping, MRR growth.', type: 'fast', color: 4 },
+    { id: 'creator', title: 'Content Creator', desc: 'Audience building, sponsorships, and monetization strategy.', type: 'design', color: 6 },
+    { id: 'virtual_assist', title: 'Virtual Assistant', desc: 'Calendar management, inbox triage, and travel planning.', type: 'hr', color: 5 },
+
+    // Agriculture, Energy, Infrastructure & Misc
+    { id: 'agtech_eng', title: 'AgTech Engineer', desc: 'Precision farming algorithms, drone analytics, soil sensors.', type: 'hardware', color: 2 },
+    { id: 'energy_analyst', title: 'Energy Analyst', desc: 'Grid load forecasting, renewables integration modeling.', type: 'data', color: 3 },
+    { id: 'petroleum_eng', title: 'Petroleum Engineer', desc: 'Reservoir simulation, drilling optimization, and production.', type: 'core', color: 7 },
+    { id: 'climate_sci', title: 'Climate Scientist', desc: 'Carbon modeling, ESG sustainability metrics, remote sensing.', type: 'global', color: 1 },
+    { id: 'bio_eng', title: 'Bioengineer', desc: 'Synthetic biology, tissue engineering, CRISPR pipelines.', type: 'tech', color: 4 },
+    { id: 'transport_pl', title: 'Transportation Planner', desc: 'Urban mobility, traffic flow simulation, transit networks.', type: 'network', color: 5 },
+    { id: 'aviation_sec', title: 'Aviation Security', desc: 'Airspace threat modeling, TSA compliance, screening tech.', type: 'sec', color: 0 },
+    { id: 'space_eng', title: 'Aerospace Engineer', desc: 'Orbital mechanics, propulsion systems, satellite telemetry.', type: 'hardware', color: 6 },
+    { id: 'music_prod', title: 'Music Producer', desc: 'Audio mixing, synthesis, DAW workflows, mastering.', type: 'design', color: 4 },
+    { id: 'architect', title: 'Architect (Building)', desc: 'CAD design, BIM modeling, structural integrity.', type: 'arch', color: 1 },
+    { id: 'civil_eng', title: 'Civil Engineer', desc: 'Infrastructure layout, load-bearing analysis, municipal planning.', type: 'arch', color: 2 },
+    { id: 'marine_bio', title: 'Marine Biologist', desc: 'Oceanographic data collection, ecosystem tracking.', type: 'global', color: 5 },
+    { id: 'forensic_sci', title: 'Forensic Scientist', desc: 'Digital forensics, DNA sequencing, chain of custody.', type: 'data', color: 0 },
+    { id: 'urban_planner', title: 'Urban Planner', desc: 'City zoning, spatial demographics, public policy tech.', type: 'arch', color: 3 },
+    { id: 'event_planner', title: 'Event Planner', desc: 'Vendor coordination, logistics, attendee experience.', type: 'hr', color: 6 },
 ];
 
 export const PERSONAS: Persona[] = rawPersonas.map(p => ({
