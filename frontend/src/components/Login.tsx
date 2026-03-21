@@ -1,17 +1,37 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Search } from 'lucide-react';
+
 import { loginUser, registerUser, updatePersona } from '../api/client';
 import { PERSONAS } from '../data/personas';
 import { BrandLogo } from './BrandLogo';
+import { SiteFooter } from './SiteFooter';
+import { ThemeToggle } from './ThemeToggle';
 
 interface LoginProps {
-    onLoginSuccess: (persona: string) => void;
+    onLoginSuccess: (persona?: string) => void | Promise<void>;
     forcePersonaStep?: boolean;
     onBackClick?: () => void;
+    theme: 'light' | 'dark';
+    onToggleTheme: () => void;
 }
 
-export function Login({ onLoginSuccess, forcePersonaStep = false, onBackClick }: LoginProps) {
+const FEATURED_PERSONA_IDS = ['c_suite', 'ceo', 'cto', 'cfo', 'vp_eng', 'investor'];
+
+function getErrorMessage(error: unknown, fallback: string) {
+    if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error
+    ) {
+        const response = (error as { response?: { data?: { detail?: string } } }).response;
+        return response?.data?.detail || fallback;
+    }
+
+    return fallback;
+}
+
+export function Login({ onLoginSuccess, forcePersonaStep = false, onBackClick, theme, onToggleTheme }: LoginProps) {
     const [isLoginTab, setIsLoginTab] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -22,33 +42,34 @@ export function Login({ onLoginSuccess, forcePersonaStep = false, onBackClick }:
     const [isLoading, setIsLoading] = useState(false);
     const [step, setStep] = useState<'auth' | 'persona'>(forcePersonaStep ? 'persona' : 'auth');
     const [searchQuery, setSearchQuery] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(9);
 
-    const filteredPersonas = PERSONAS.filter(p =>
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredPersonas = useMemo(
+        () => PERSONAS.filter((persona) =>
+            persona.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            persona.description.toLowerCase().includes(searchQuery.toLowerCase())
+        ),
+        [searchQuery]
     );
 
-    const totalPages = Math.ceil(filteredPersonas.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentPersonas = itemsPerPage === 100 ? filteredPersonas : filteredPersonas.slice(startIndex, startIndex + itemsPerPage);
-
-    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
-        setCurrentPage(1); // Reset pagination on new search
-    };
+    const featuredPersonas = useMemo(
+        () => FEATURED_PERSONA_IDS
+            .map((id) => PERSONAS.find((persona) => persona.id === id))
+            .filter((persona): persona is NonNullable<typeof persona> => Boolean(persona)),
+        []
+    );
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         setErrorMsg('');
+
         try {
             if (isLoginTab) {
                 const res = await loginUser(email, password);
                 localStorage.setItem('omnipitch_token', res.access_token);
+
                 if (res.persona) {
-                    onLoginSuccess(res.persona);
+                    await onLoginSuccess(res.persona);
                 } else {
                     setStep('persona');
                 }
@@ -58,8 +79,8 @@ export function Login({ onLoginSuccess, forcePersonaStep = false, onBackClick }:
                 localStorage.setItem('omnipitch_token', loginRes.access_token);
                 setStep('persona');
             }
-        } catch (err: any) {
-            setErrorMsg(err.response?.data?.detail || 'Authentication failed');
+        } catch (err: unknown) {
+            setErrorMsg(getErrorMessage(err, 'Authentication failed'));
         } finally {
             setIsLoading(false);
         }
@@ -67,236 +88,237 @@ export function Login({ onLoginSuccess, forcePersonaStep = false, onBackClick }:
 
     const handlePersonaSelect = async (personaId: string) => {
         try {
+            setErrorMsg('');
             await updatePersona(personaId);
-            onLoginSuccess(personaId);
-        } catch (err) {
-            setErrorMsg('Failed to update persona');
+            await onLoginSuccess(personaId);
+        } catch {
+            setErrorMsg('Could not save that role. Please try again.');
         }
     };
 
+    const allRoles = searchQuery.trim().length > 0 ? filteredPersonas : PERSONAS;
+
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950 text-slate-200 selection:bg-indigo-500/30 font-sans">
-            {/* Global Branding overlay */}
-            <div className="absolute top-6 left-6 z-50 pointer-events-none">
-                <BrandLogo />
-            </div>
-
-            <div className="min-h-screen flex flex-col items-center justify-center p-4 py-12 relative">
-                {/* Subtle Apple-like glows */}
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-
-                {onBackClick && (
-                    <div className="absolute top-6 right-6 z-50">
-                        <button
-                            onClick={onBackClick}
-                            className="bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 text-sm font-medium px-4 py-2 rounded-full transition-all shadow-sm backdrop-blur-md"
-                        >
-                            Back
-                        </button>
+        <div className="min-h-screen bg-[color:var(--app-bg)] px-4 py-6 text-[color:var(--text)] sm:px-6 lg:px-8">
+            <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-7xl flex-col">
+                <div className="flex items-center justify-between">
+                    <BrandLogo />
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+                        {onBackClick ? (
+                            <button
+                                onClick={onBackClick}
+                                className="rounded-full border border-[color:var(--border)] bg-[color:var(--panel)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition-colors hover:bg-[color:var(--panel-soft)]"
+                            >
+                                Back
+                            </button>
+                        ) : null}
                     </div>
-                )}
+                </div>
 
-                <AnimatePresence mode="wait">
-                    {step === 'auth' ? (
-                        <motion.div
-                            key="auth"
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="w-full max-w-md bg-white/5 backdrop-blur-2xl p-10 rounded-[2rem] border border-white/10 shadow-2xl relative z-10"
-                        >
-                            <div className="text-center mb-10">
-                                <h2 className="text-3xl font-semibold tracking-tight text-white mb-2">
-                                    Welcome
-                                </h2>
-                                <p className="text-sm text-slate-400">Sign in to OmniPitchAI</p>
-                            </div>
+                <div className="relative mt-8 flex flex-1 items-center justify-center">
+                    <div className="pointer-events-none absolute left-0 top-8 h-72 w-72 rounded-full bg-[color:var(--accent-soft)] blur-3xl" />
+                    <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 rounded-full bg-[rgba(184,105,54,0.14)] blur-3xl" />
 
-                            <div className="flex bg-slate-900/50 backdrop-blur-md rounded-2xl p-1 mb-8 border border-white/5">
-                                <button
-                                    className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 ${isLoginTab ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
-                                    onClick={() => setIsLoginTab(true)}
-                                >
-                                    Log In
-                                </button>
-                                <button
-                                    className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 ${!isLoginTab ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
-                                    onClick={() => setIsLoginTab(false)}
-                                >
-                                    Register
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleAuth} className="space-y-4">
-                                {!isLoginTab && (
-                                    <>
-                                        <div className="flex space-x-3">
-                                            <div className="flex-1">
-                                                <label className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">First Name</label>
-                                                <input
-                                                    type="text"
-                                                    value={firstName}
-                                                    onChange={e => setFirstName(e.target.value)}
-                                                    required={!isLoginTab}
-                                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600"
-                                                    placeholder="John"
-                                                />
-                                            </div>
-                                            <div className="flex-1">
-                                                <label className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">Last Name</label>
-                                                <input
-                                                    type="text"
-                                                    value={lastName}
-                                                    onChange={e => setLastName(e.target.value)}
-                                                    required={!isLoginTab}
-                                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600"
-                                                    placeholder="Doe"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">Company</label>
-                                            <input
-                                                type="text"
-                                                value={companyName}
-                                                onChange={e => setCompanyName(e.target.value)}
-                                                required={!isLoginTab}
-                                                className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600"
-                                                placeholder="Acme Corp"
-                                            />
-                                        </div>
-                                    </>
-                                )}
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={e => setEmail(e.target.value)}
-                                        required
-                                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600"
-                                        placeholder="name@company.com"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1.5 ml-1">Password</label>
-                                    <input
-                                        type="password"
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        required
-                                        className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all placeholder:text-slate-600"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-
-                                {errorMsg && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-red-400 text-sm font-medium px-1 pt-1">{errorMsg}</motion.p>}
-
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-full bg-white text-slate-950 hover:bg-slate-100 font-semibold rounded-xl py-3.5 mt-8 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-70 disabled:pointer-events-none"
-                                >
-                                    {isLoading ? 'Processing...' : (isLoginTab ? 'Continue' : 'Create Account')}
-                                </button>
-                            </form>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="persona"
-                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                            className="w-full max-w-7xl pt-8 px-4 relative z-10"
-                        >
-                            <div className="max-w-3xl mx-auto text-center mb-12">
-                                <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-white mb-4">
-                                    Choose Your Role
-                                </h2>
-                                <p className="text-lg text-slate-400 mb-10 max-w-xl mx-auto font-light">
-                                    Select the perspective you want the AI to adopt when generating your corporate artifacts.
+                    <AnimatePresence mode="wait">
+                        {step === 'auth' ? (
+                            <motion.div
+                                key="auth"
+                                initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: -12, scale: 0.98 }}
+                                transition={{ duration: 0.32, ease: 'easeOut' }}
+                                className="relative z-10 w-full max-w-md rounded-[32px] border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-8 shadow-[0_30px_80px_rgba(24,38,31,0.08)]"
+                            >
+                                <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--muted)]">Welcome</p>
+                                <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[color:var(--text)]">
+                                    {isLoginTab ? 'Sign in' : 'Create your account'}
+                                </h1>
+                                <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+                                    Keep it simple. Sign in, pick a role, and start your first deck.
                                 </p>
 
-                                <div className="relative max-w-xl mx-auto group">
-                                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                                        <Search className="h-5 w-5 text-slate-400 group-focus-within:text-indigo-400 transition-colors" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        className="block w-full pl-14 pr-6 py-4 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-xl text-lg"
-                                        placeholder="Search 100+ personas..."
-                                        value={searchQuery}
-                                        onChange={handleSearch}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-12">
-                                {currentPersonas.map((p, idx) => (
-                                    <motion.div
-                                        key={p.id}
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: Math.min(idx, 15) * 0.02, ease: "easeOut" }}
-                                        onClick={() => handlePersonaSelect(p.id)}
-                                        className="cursor-pointer group relative bg-white/[0.03] backdrop-blur-sm border border-white/10 hover:border-white/20 hover:bg-white/[0.06] rounded-2xl p-6 transition-all duration-300 flex flex-col items-start h-40 shadow-lg hover:shadow-xl hover:-translate-y-1"
+                                <div className="mt-6 grid grid-cols-2 rounded-2xl bg-[color:var(--surface-muted)] p-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsLoginTab(true)}
+                                        className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${isLoginTab ? 'bg-[color:var(--panel-strong)] text-[color:var(--text)] shadow-sm' : 'text-[color:var(--muted)] hover:text-[color:var(--text)]'}`}
                                     >
-                                        <div className="flex items-center space-x-3 mb-3 shrink-0">
-                                            <div className="p-2 rounded-lg bg-white/5 text-slate-300 group-hover:text-white group-hover:bg-indigo-500/20 transition-colors">
-                                                {p.icon}
-                                            </div>
-                                            <h3 className="text-base font-semibold text-slate-200 group-hover:text-white transition-colors">{p.title}</h3>
-                                        </div>
-                                        <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed line-clamp-2">{p.description}</p>
-                                    </motion.div>
-                                ))}
-                            </div>
-
-                            {/* Pagination Interface */}
-                            <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-6 pb-24 text-sm font-medium text-slate-400">
-                                <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-                                    <span>Show:</span>
-                                    <div className="flex bg-white/5 rounded-xl p-1 border border-white/10">
-                                        {[9, 50, 100].map(val => (
-                                            <button
-                                                key={val}
-                                                onClick={() => { setItemsPerPage(val); setCurrentPage(1); }}
-                                                className={`px-3 py-1.5 rounded-lg transition-colors ${itemsPerPage === val ? 'bg-white/10 text-white shadow-sm' : 'hover:bg-white/5 hover:text-slate-300'}`}
-                                            >
-                                                {val === 100 ? 'All' : val}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <span className="hidden sm:inline">personas</span>
+                                        Sign in
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsLoginTab(false)}
+                                        className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${!isLoginTab ? 'bg-[color:var(--panel-strong)] text-[color:var(--text)] shadow-sm' : 'text-[color:var(--muted)] hover:text-[color:var(--text)]'}`}
+                                    >
+                                        Create account
+                                    </button>
                                 </div>
 
-                                {itemsPerPage !== 100 && totalPages > 1 && (
-                                    <div className="flex items-center space-x-6">
-                                        <button
-                                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                            disabled={currentPage === 1}
-                                            className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-                                        >
-                                            Previous
-                                        </button>
-                                        <span className="text-slate-300 font-semibold tracking-wide">
-                                            Page {currentPage} <span className="text-slate-500 font-normal">of {totalPages}</span>
-                                        </span>
-                                        <button
-                                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                            disabled={currentPage === totalPages}
-                                            className="px-4 py-2 rounded-xl border border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-                                        >
-                                            Next
-                                        </button>
+                                <form onSubmit={handleAuth} className="mt-6 space-y-4">
+                                    {!isLoginTab ? (
+                                        <>
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <label className="block">
+                                                    <span className="mb-2 block text-sm text-[color:var(--muted)]">First name</span>
+                                                    <input
+                                                        type="text"
+                                                        value={firstName}
+                                                        onChange={(e) => setFirstName(e.target.value)}
+                                                        required={!isLoginTab}
+                                                        className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--input)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)]"
+                                                        placeholder="John"
+                                                    />
+                                                </label>
+                                                <label className="block">
+                                                    <span className="mb-2 block text-sm text-[color:var(--muted)]">Last name</span>
+                                                    <input
+                                                        type="text"
+                                                        value={lastName}
+                                                        onChange={(e) => setLastName(e.target.value)}
+                                                        required={!isLoginTab}
+                                                        className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--input)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)]"
+                                                        placeholder="Doe"
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            <label className="block">
+                                                <span className="mb-2 block text-sm text-[color:var(--muted)]">Company</span>
+                                                <input
+                                                    type="text"
+                                                    value={companyName}
+                                                    onChange={(e) => setCompanyName(e.target.value)}
+                                                    required={!isLoginTab}
+                                                    className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--input)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)]"
+                                                    placeholder="Acme"
+                                                />
+                                            </label>
+                                        </>
+                                    ) : null}
+
+                                    <label className="block">
+                                        <span className="mb-2 block text-sm text-[color:var(--muted)]">Email</span>
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                            className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--input)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)]"
+                                            placeholder="name@company.com"
+                                        />
+                                    </label>
+
+                                    <label className="block">
+                                        <span className="mb-2 block text-sm text-[color:var(--muted)]">Password</span>
+                                        <input
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                            className="w-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--input)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)]"
+                                            placeholder="••••••••"
+                                        />
+                                    </label>
+
+                                    {errorMsg ? <p className="text-sm text-red-600">{errorMsg}</p> : null}
+
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="w-full rounded-full bg-[color:var(--accent)] px-5 py-3.5 text-sm font-medium text-white transition-colors hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-70"
+                                    >
+                                        {isLoading ? 'Please wait...' : isLoginTab ? 'Continue' : 'Create account'}
+                                    </button>
+                                </form>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="persona"
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -12 }}
+                                transition={{ duration: 0.32, ease: 'easeOut' }}
+                                className="relative z-10 w-full max-w-6xl rounded-[36px] border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-6 shadow-[0_30px_80px_rgba(24,38,31,0.08)] md:p-8"
+                            >
+                                <div className="max-w-2xl">
+                                    <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--muted)]">Role</p>
+                                    <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[color:var(--text)] md:text-4xl">
+                                        Pick the lens for your deck.
+                                    </h1>
+                                    <p className="mt-3 text-sm leading-6 text-[color:var(--muted)]">
+                                        Choose a common role below, or search if you want something more specific.
+                                    </p>
+                                </div>
+
+                                <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                                    <div>
+                                        <p className="text-sm font-medium text-[color:var(--text)]">Popular roles</p>
+                                        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                            {featuredPersonas.map((persona) => (
+                                                <button
+                                                    key={persona.id}
+                                                    type="button"
+                                                    onClick={() => handlePersonaSelect(persona.id)}
+                                                    className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--panel)] p-4 text-left transition hover:-translate-y-0.5 hover:border-[color:var(--accent)] hover:bg-[color:var(--panel-strong)]"
+                                                >
+                                                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+                                                        {persona.icon}
+                                                    </div>
+                                                    <p className="mt-4 text-base font-medium text-[color:var(--text)]">{persona.title}</p>
+                                                    <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">{persona.description}</p>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+
+                                    <div className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-5">
+                                        <p className="text-sm font-medium text-[color:var(--text)]">Search all roles</p>
+                                        <div className="relative mt-4">
+                                            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--muted)]" />
+                                            <input
+                                                type="text"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                placeholder="Search roles"
+                                                className="w-full rounded-full border border-[color:var(--border)] bg-[color:var(--input)] px-11 py-3 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)]"
+                                            />
+                                        </div>
+
+                                        <div className="mt-4 max-h-[24rem] space-y-2 overflow-y-auto pr-1">
+                                            {allRoles.map((persona) => (
+                                                <button
+                                                    key={persona.id}
+                                                    type="button"
+                                                    onClick={() => handlePersonaSelect(persona.id)}
+                                                    className="flex w-full items-start gap-3 rounded-2xl border border-transparent bg-[color:var(--panel-soft)] px-4 py-3 text-left transition hover:border-[color:var(--accent)] hover:bg-[color:var(--panel-strong)]"
+                                                >
+                                                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+                                                        {persona.icon}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-medium text-[color:var(--text)]">{persona.title}</p>
+                                                        <p className="mt-1 text-xs leading-5 text-[color:var(--muted)]">{persona.description}</p>
+                                                    </div>
+                                                </button>
+                                            ))}
+
+                                            {allRoles.length === 0 ? (
+                                                <div className="rounded-2xl bg-[color:var(--panel-strong)] px-4 py-5 text-sm text-[color:var(--muted)]">
+                                                    No roles match that search.
+                                                </div>
+                                            ) : null}
+                                        </div>
+
+                                        {errorMsg ? <p className="mt-4 text-sm text-red-600">{errorMsg}</p> : null}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                <SiteFooter className="mt-6 bg-[color:var(--surface)]" />
             </div>
         </div>
     );

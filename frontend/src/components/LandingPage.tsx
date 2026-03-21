@@ -1,159 +1,161 @@
 import { motion } from 'framer-motion';
-import { Layers, Zap, Presentation, ArrowRight } from 'lucide-react';
+import { ArrowRight, FileStack, LayoutTemplate, Wand2 } from 'lucide-react';
+
 import { BrandLogo } from './BrandLogo';
+import { SiteFooter } from './SiteFooter';
+import { ThemeToggle } from './ThemeToggle';
 
 interface LandingPageProps {
     onLoginClick: () => void;
+    theme: 'light' | 'dark';
+    onToggleTheme: () => void;
 }
 
-export function LandingPage({ onLoginClick }: LandingPageProps) {
-    const fadeIn = {
-        initial: { opacity: 0, y: 20 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.6, ease: "easeOut" }
-    };
+const STEPS = [
+    {
+        title: 'Brief',
+        detail: 'Add a topic, audience, and a few notes.',
+        icon: Wand2,
+    },
+    {
+        title: 'Upload',
+        detail: 'Drop in docs, slides, code, or PDFs.',
+        icon: FileStack,
+    },
+    {
+        title: 'Review',
+        detail: 'Check the draft, then export the deck.',
+        icon: LayoutTemplate,
+    },
+];
 
-    const stagger = {
-        animate: {
-            transition: {
-                staggerChildren: 0.2
-            }
-        }
-    };
-
+export function LandingPage({ onLoginClick, theme, onToggleTheme }: LandingPageProps) {
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-indigo-500/30 font-sans overflow-x-hidden">
-            {/* Global Navigation */}
-            <nav className="absolute top-0 w-full p-6 flex justify-between items-center z-50">
+        <div className="relative flex min-h-screen flex-col overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--text)]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(23,76,60,0.14),transparent_24%),radial-gradient(circle_at_88%_12%,rgba(184,105,54,0.12),transparent_26%)]" />
+
+            <nav className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
                 <BrandLogo />
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center gap-3">
+                    <ThemeToggle theme={theme} onToggle={onToggleTheme} />
                     <button
                         onClick={onLoginClick}
-                        className="text-sm font-medium text-slate-300 hover:text-white transition-colors px-4 py-2"
+                        className="rounded-full border border-[color:var(--border)] bg-[color:var(--panel)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition-colors hover:bg-[color:var(--panel-soft)]"
                     >
-                        Log In
+                        Sign in
                     </button>
                     <button
                         onClick={onLoginClick}
-                        className="bg-white text-slate-900 hover:bg-slate-100 text-sm font-medium px-5 py-2.5 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                        className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[color:var(--accent-strong)]"
                     >
-                        Get Started
+                        Start
+                        <ArrowRight className="h-4 w-4" />
                     </button>
                 </div>
             </nav>
 
-            {/* Ambient Background Glows */}
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-            <div className="absolute top-[40%] right-[-10%] w-[40%] h-[60%] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-
-            {/* Hero Section */}
-            <main className="relative z-10 pt-32 pb-24 md:pt-48 md:pb-32 px-4 max-w-7xl mx-auto flex flex-col items-center text-center">
-                <motion.div
-                    initial="initial"
-                    animate="animate"
-                    variants={stagger}
-                    className="max-w-4xl"
-                >
-                    <motion.div variants={fadeIn} className="inline-flex items-center gap-2 mb-8 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-xl shadow-sm">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                        </span>
-                        <span className="text-xs font-semibold text-slate-300 tracking-wide">OmniPitchAI is Live</span>
+            <main className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pb-16 pt-8 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-center lg:gap-16 lg:px-8 lg:pb-24 lg:pt-14">
+                <section className="max-w-3xl">
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, ease: 'easeOut' }}
+                    >
+                        <div className="inline-flex rounded-full border border-[color:var(--border)] bg-[color:var(--panel)] px-3 py-1 text-xs uppercase tracking-[0.24em] text-[color:var(--muted)]">
+                            simple deck workflow
+                        </div>
+                        <h1 className="mt-6 max-w-3xl text-5xl font-semibold tracking-tight text-[color:var(--text)] sm:text-6xl">
+                            Make a clear deck from messy source material.
+                        </h1>
+                        <p className="mt-5 max-w-2xl text-lg leading-8 text-[color:var(--muted)]">
+                            OmniPitchAI turns notes, docs, code, PDFs, and images into one clean presentation flow.
+                        </p>
                     </motion.div>
 
-                    <motion.h1 variants={fadeIn} className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight mb-6 text-white drop-shadow-sm leading-tight">
-                        Transform Complex Ideas <br className="hidden md:block" />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">
-                            into Executive Strategy.
-                        </span>
-                    </motion.h1>
-
-                    <motion.p variants={fadeIn} className="text-lg md:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-10 font-light">
-                        Accelerate enterprise alignment. OmniPitch turns mixed source packets like architecture docs, repo archives, PDFs, images, and technical notes into persuasive, boardroom-ready presentations tailored to over 100 distinct executive personas.
-                    </motion.p>
-
-                    <motion.div variants={fadeIn} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+                        className="mt-10 flex flex-col gap-4 sm:flex-row"
+                    >
                         <button
                             onClick={onLoginClick}
-                            className="w-full sm:w-auto flex items-center justify-center px-8 py-4 bg-white hover:bg-slate-100 text-slate-900 text-lg font-bold rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+                            className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--accent)] px-7 py-3.5 text-base font-medium text-white transition-colors hover:bg-[color:var(--accent-strong)]"
                         >
-                            Start Generating
-                            <ArrowRight className="ml-2 w-5 h-5" />
+                            Start a deck
+                            <ArrowRight className="h-4 w-4" />
                         </button>
+                        <div className="rounded-full border border-[color:var(--border)] bg-[color:var(--panel)] px-5 py-3 text-sm text-[color:var(--muted)]">
+                            Works with briefs only or briefs plus files.
+                        </div>
                     </motion.div>
-                </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 18 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.14, ease: 'easeOut' }}
+                        className="mt-12 grid gap-4 md:grid-cols-3"
+                    >
+                        {STEPS.map((step) => {
+                            const Icon = step.icon;
+                            return (
+                                <div
+                                    key={step.title}
+                                    className="rounded-[28px] border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-5 shadow-[0_20px_60px_rgba(24,38,31,0.06)]"
+                                >
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+                                        <Icon className="h-5 w-5" />
+                                    </div>
+                                    <p className="mt-4 text-lg font-medium text-[color:var(--text)]">{step.title}</p>
+                                    <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">{step.detail}</p>
+                                </div>
+                            );
+                        })}
+                    </motion.div>
+                </section>
+
+                <motion.aside
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.12, ease: 'easeOut' }}
+                    className="rounded-[32px] border border-[color:var(--border)] bg-[color:var(--surface-strong)] p-6 shadow-[0_28px_80px_rgba(24,38,31,0.08)]"
+                >
+                    <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--muted)]">What changes</p>
+                    <div className="mt-6 space-y-4">
+                        <div className="rounded-3xl bg-[color:var(--surface-muted)] p-4">
+                            <p className="text-sm text-[color:var(--muted)]">Before</p>
+                            <p className="mt-2 text-base font-medium text-[color:var(--text)]">
+                                Too many steps, too much explanation, and too many places to look.
+                            </p>
+                        </div>
+                        <div className="rounded-3xl bg-[color:var(--accent)] p-4 text-white">
+                            <p className="text-sm text-white/70">Now</p>
+                            <p className="mt-2 text-base font-medium">
+                                One simple brief, one workspace, and clear actions when the deck is ready.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 rounded-[28px] border border-[color:var(--border)] bg-[color:var(--panel)] p-5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-[color:var(--text)]">New deck</span>
+                            <span className="rounded-full bg-[color:var(--accent-soft)] px-3 py-1 text-xs text-[color:var(--accent)]">3 min setup</span>
+                        </div>
+                        <div className="mt-5 space-y-3">
+                            {['Topic', 'Audience', 'Files'].map((item, index) => (
+                                <div key={item} className="flex items-center gap-3 rounded-2xl bg-[color:var(--surface-muted)] px-4 py-3">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--panel-strong)] text-sm font-medium text-[color:var(--accent)]">
+                                        {index + 1}
+                                    </div>
+                                    <span className="text-sm text-[color:var(--text)]">{item}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </motion.aside>
             </main>
 
-            {/* How It Works Section */}
-            <section className="relative z-10 py-24 bg-black/20 border-t border-white/5 backdrop-blur-3xl">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-4">How It Works</h2>
-                        <p className="text-lg text-slate-400 font-light max-w-2xl mx-auto">
-                            Our intelligent Agentic AI orchestrates a seamless transformation from raw enterprise data to persuasive, executive-grade presentations.
-                        </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {/* Step 1 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-100px" }}
-                            transition={{ duration: 0.5, delay: 0.1 }}
-                            className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:bg-white/[0.07] transition-colors"
-                        >
-                            <div className="w-14 h-14 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center mb-6">
-                                <Layers className="w-7 h-7" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-3 tracking-tight">1. Provide Technical Context</h3>
-                            <p className="text-slate-400 leading-relaxed font-light text-[15px]">
-                                Upload mixed project files, technical documentation, diagrams, or strategic outlines. OmniPitch instantly processes the full context packet in one generation flow.
-                            </p>
-                        </motion.div>
-
-                        {/* Step 2 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-100px" }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                            className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:bg-white/[0.07] transition-colors"
-                        >
-                            <div className="w-14 h-14 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center mb-6">
-                                <Zap className="w-7 h-7" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-3 tracking-tight">2. Agentic AI Synthesis</h3>
-                            <p className="text-slate-400 leading-relaxed font-light text-[15px]">
-                                Deploy a specialized swarm of autonomous AI agents that collaboratively analyze your inputs, extract core business value, and construct a compelling narrative flow.
-                            </p>
-                        </motion.div>
-
-                        {/* Step 3 */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-100px" }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
-                            className="bg-white/5 border border-white/10 rounded-3xl p-8 hover:bg-white/[0.07] transition-colors"
-                        >
-                            <div className="w-14 h-14 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mb-6">
-                                <Presentation className="w-7 h-7" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-3 tracking-tight">3. Boardroom-Ready Output</h3>
-                            <p className="text-slate-400 leading-relaxed font-light text-[15px]">
-                                Instantly download a meticulously formatted, high-impact presentation specifically optimized for your target stakeholder out of 100+ unique corporate personas.
-                            </p>
-                        </motion.div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Footer */}
-            <footer className="border-t border-white/10 bg-black/40 py-12 text-center text-slate-500 text-sm">
-                <p>© 2026 Aisynch Labs. All rights reserved.</p>
-            </footer>
+            <SiteFooter className="relative z-10 bg-[color:var(--surface)]" />
         </div>
     );
 }

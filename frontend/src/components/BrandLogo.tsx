@@ -1,24 +1,30 @@
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 
-export function BrandLogo() {
+interface BrandLogoProps {
+    compact?: boolean;
+}
+
+export function BrandLogo({ compact = false }: BrandLogoProps) {
     return (
-        <div className="flex items-center space-x-3 cursor-pointer group pointer-events-auto">
+        <div className="flex items-center gap-3 cursor-pointer group pointer-events-auto">
             <motion.div
-                className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/20"
-                whileHover={{ scale: 1.05, rotate: 12 }}
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--accent)] text-white shadow-[0_12px_30px_rgba(23,76,60,0.16)]"
+                whileHover={{ scale: 1.03, rotate: 6 }}
                 whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                transition={{ type: "spring", stiffness: 360, damping: 20 }}
             >
-                <Sparkles className="w-5 h-5 text-white" />
+                <Sparkles className="h-5 w-5" />
             </motion.div>
             <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-blue-400 transition-all duration-300">
+                <span className="text-xl font-semibold tracking-tight text-[color:var(--text)] transition-colors duration-300 group-hover:text-[color:var(--accent)]">
                     OmniPitchAI
                 </span>
-                <span className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold mt-0.5">
-                    By Aisynch Labs
-                </span>
+                {!compact ? (
+                    <span className="mt-0.5 text-[11px] uppercase tracking-[0.28em] text-[color:var(--muted)]">
+                        deck studio
+                    </span>
+                ) : null}
             </div>
         </div>
     );

@@ -1,15 +1,14 @@
-import { useEffect, useState } from 'react';
-import { AlertCircle, LogOut } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import Joyride from 'react-joyride';
-import type { Step } from 'react-joyride';
+import { useEffect, useLayoutEffect, useState } from 'react';
+import { AlertCircle, LogOut, Settings2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { checkStatus, getDownloadUrl, getMe, uploadDocument } from './api/client';
 import { BrandLogo } from './components/BrandLogo';
 import { LandingPage } from './components/LandingPage';
 import { Login } from './components/Login';
+import { SiteFooter } from './components/SiteFooter';
+import { ThemeToggle } from './components/ThemeToggle';
 import { CentralCanvas } from './components/Workspace/CentralCanvas';
-import { LeftSidebar } from './components/Workspace/LeftSidebar';
 import type { WizardData } from './components/Wizard/FormWizard';
 import type {
   GenerationSource,
@@ -24,6 +23,8 @@ interface UserData {
   email?: string;
   persona?: string;
 }
+
+type ThemeMode = 'light' | 'dark';
 
 const EMPTY_SOURCE_SUMMARY: GenerationSourceSummary = {
   files_received: 0,
@@ -48,19 +49,45 @@ function formatPersona(persona: string | null | undefined): string {
 
 function formatStatus(status: 'idle' | 'uploading' | 'processing' | 'completed' | 'error') {
   if (status === 'idle') return 'Ready';
-  if (status === 'uploading') return 'Uploading';
-  if (status === 'processing') return 'Generating';
-  if (status === 'completed') return 'Deck Ready';
-  return 'Needs Attention';
+  if (status === 'uploading') return 'Starting';
+  if (status === 'processing') return 'Building';
+  if (status === 'completed') return 'Done';
+  return 'Error';
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error
+  ) {
+    const response = (error as { response?: { data?: { detail?: string } } }).response;
+    return response?.data?.detail || fallback;
+  }
+
+  return fallback;
+}
+
+function getInitialTheme(): ThemeMode {
+  if (typeof window === 'undefined') {
+    return 'light';
+  }
+
+  const savedTheme = window.localStorage.getItem('omnipitch_theme');
+  if (savedTheme === 'light' || savedTheme === 'dark') {
+    return savedTheme;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function App() {
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [user, setUser] = useState<UserData | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'completed' | 'error'>('idle');
   const [currentStep, setCurrentStep] = useState<string>('');
   const [progressPercent, setProgressPercent] = useState(0);
-  const [runTour, setRunTour] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showPersonaSelector, setShowPersonaSelector] = useState<boolean>(false);
   const [showLogin, setShowLogin] = useState<boolean>(false);
@@ -71,26 +98,6 @@ function App() {
   const [slidesGenerated, setSlidesGenerated] = useState(0);
   const [sourceSummary, setSourceSummary] = useState<GenerationSourceSummary>(EMPTY_SOURCE_SUMMARY);
   const [presentation, setPresentation] = useState<PresentationDeck | null>(null);
-
-  const tourSteps: Step[] = [
-    {
-      target: '.tour-step-1',
-      content: 'This persona hub keeps the deck language and framing aligned with the role you care about.',
-      disableBeacon: true,
-    },
-    {
-      target: '.tour-step-2',
-      content: 'Build a context packet with notes plus mixed files like PDFs, docs, source code, images, or repo archives.',
-    },
-    {
-      target: '.tour-step-3',
-      content: 'Track the full generation path, see what sources were processed, and watch the outline take shape in real time.',
-    },
-    {
-      target: '.tour-step-4',
-      content: 'Review the generated deck directly in the workspace, then export it as PPTX or PDF without breaking the flow.',
-    }
-  ];
 
   const resetGenerationState = () => {
     setJobId(null);
@@ -120,32 +127,36 @@ function App() {
 
   const liveSlideCount = presentation ? presentation.slides.length + 2 : slidesGenerated;
   const shellStatus = formatStatus(status);
-  const activeDeckLabel = presentation?.deck_title || generationRequest?.topic || 'New Executive Deck';
+  const activeDeckLabel = presentation?.deck_title || generationRequest?.topic || 'New deck';
+  const userInitial = (user?.first_name?.charAt(0) || user?.email?.charAt(0) || 'O').toUpperCase();
 
-  useEffect(() => {
-    if (user && status === 'idle') {
-      const hasSeenTour = localStorage.getItem('omnipitch_tour_seen');
-      if (!hasSeenTour) {
-        setRunTour(true);
-        localStorage.setItem('omnipitch_tour_seen', 'true');
-      }
-    }
-  }, [user, status]);
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('omnipitch_theme', theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((current) => current === 'light' ? 'dark' : 'light');
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('omnipitch_token');
-      if (token) {
-        try {
-          const userData = await getMe();
-          if (userData) {
-            setUser(userData);
-          }
-        } catch {
-          localStorage.removeItem('omnipitch_token');
+
+      if (!token) {
+        return;
+      }
+
+      try {
+        const userData = await getMe();
+        if (userData) {
+          setUser(userData);
         }
+      } catch {
+        localStorage.removeItem('omnipitch_token');
       }
     };
+
     checkAuth();
   }, []);
 
@@ -167,9 +178,9 @@ function App() {
       setJobId(response.job_id);
       setStatus('processing');
       syncGenerationState(response);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      setErrorMsg(err.response?.data?.detail || 'Failed to start generation.');
+      setErrorMsg(getErrorMessage(err, 'Failed to start generation.'));
     }
   };
 
@@ -209,10 +220,10 @@ function App() {
             key="landing"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
           >
-            <LandingPage onLoginClick={() => setShowLogin(true)} />
+            <LandingPage onLoginClick={() => setShowLogin(true)} theme={theme} onToggleTheme={handleToggleTheme} />
           </motion.div>
         </AnimatePresence>
       );
@@ -227,6 +238,8 @@ function App() {
             setShowPersonaSelector(false);
             setShowLogin(false);
           }}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
           onBackClick={() => setShowLogin(false)}
         />
       </AnimatePresence>
@@ -242,6 +255,8 @@ function App() {
             setUser(userData);
             setShowPersonaSelector(false);
           }}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
           forcePersonaStep={true}
           onBackClick={() => setShowPersonaSelector(false)}
         />
@@ -250,101 +265,82 @@ function App() {
   }
 
   return (
-    <div className="fixed inset-0 w-full flex flex-col overflow-hidden bg-[#07111f] font-sans text-slate-200 selection:bg-sky-400/30">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(245,158,11,0.12),transparent_24%),radial-gradient(circle_at_50%_100%,rgba(59,130,246,0.08),transparent_40%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/60 to-transparent opacity-60" />
+    <div className="min-h-screen bg-[color:var(--app-bg)] text-[color:var(--text)]">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,rgba(23,76,60,0.12),transparent_24%),radial-gradient(circle_at_90%_14%,rgba(184,105,54,0.12),transparent_24%)]" />
 
-      <div className="h-20 w-full px-4 sm:px-6 xl:px-8 flex justify-between items-center z-20 border-b border-white/10 bg-slate-950/70 backdrop-blur-2xl shrink-0">
-        <div className="flex items-center gap-4 min-w-0">
-          <BrandLogo />
-          <div className="hidden xl:flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-300">
-            <span className="uppercase tracking-[0.24em] text-slate-500">Workspace</span>
-            <span className="max-w-[260px] truncate text-slate-100">{activeDeckLabel}</span>
-          </div>
-        </div>
-
-        <div className="hidden lg:flex items-center gap-3">
-          <div className="rounded-full border border-sky-400/20 bg-sky-400/10 px-3.5 py-2">
-            <p className="text-[10px] uppercase tracking-[0.24em] text-sky-200/80">Status</p>
-            <p className="mt-1 text-sm font-medium text-white">{shellStatus}</p>
-          </div>
-
-          <div className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2">
-            <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Current Stage</p>
-            <p className="mt-1 text-sm font-medium text-white">{currentStep || 'Awaiting brief'}</p>
-          </div>
-
-          <div className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-2">
-            <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Slides</p>
-            <p className="mt-1 text-sm font-medium text-white">{liveSlideCount || '0'}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <div className="tour-step-1 flex items-center space-x-3 text-slate-300 border-r border-white/10 pr-4">
-            <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 shadow-sm backdrop-blur-md">
-              <span className="font-semibold text-slate-200">{user?.first_name ? user.first_name.charAt(0) : user?.email?.charAt(0)}</span>
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1600px] flex-col px-4 py-4 sm:px-6 xl:px-8">
+        <header className="rounded-[30px] border border-[color:var(--border)] bg-[color:var(--surface-strong)] px-5 py-4 shadow-[0_22px_60px_rgba(24,38,31,0.05)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4 min-w-0">
+              <BrandLogo compact />
+              <div className="hidden h-10 w-px bg-[color:var(--border)] lg:block" />
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">Current deck</p>
+                <p className="truncate text-sm font-medium text-[color:var(--text)]">{activeDeckLabel}</p>
+              </div>
             </div>
-            <div className="text-sm">
-              <p className="font-medium text-slate-100 leading-tight">{user?.first_name || user?.email}</p>
-              <div className="flex items-center space-x-2 mt-0.5">
-                <p className="text-[11px] text-slate-400 font-medium tracking-wide">
-                  {formatPersona(user?.persona)}
-                </p>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-wrap items-center gap-3">
+                <ThemeToggle theme={theme} onToggle={handleToggleTheme} />
+                <div className="rounded-full bg-[color:var(--surface-muted)] px-4 py-2 text-sm text-[color:var(--text)]">
+                  {shellStatus}
+                </div>
+                {status !== 'idle' ? (
+                  <div className="rounded-full bg-[color:var(--surface-muted)] px-4 py-2 text-sm text-[color:var(--muted)]">
+                    {currentStep || 'Preparing'}{liveSlideCount > 0 ? ` · ${liveSlideCount} slides` : ''}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--panel)] px-2 py-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--accent)] text-sm font-semibold text-white">
+                  {userInitial}
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-[color:var(--text)]">{user?.first_name || user?.email}</p>
+                  <p className="text-xs text-[color:var(--muted)]">{formatPersona(user?.persona)}</p>
+                </div>
                 <button
                   onClick={() => {
                     setShowPersonaSelector(true);
                     resetGenerationState();
                   }}
-                  className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-full text-slate-300 transition-colors shadow-sm ml-2"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--surface-muted)] text-[color:var(--muted)] transition hover:text-[color:var(--text)]"
+                  title="Change persona"
                 >
-                  Change
+                  <Settings2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    setUser(null);
+                    resetGenerationState();
+                    localStorage.removeItem('omnipitch_token');
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--surface-muted)] text-[color:var(--muted)] transition hover:text-[color:var(--text)]"
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
                 </button>
               </div>
             </div>
           </div>
-          <button
-            onClick={() => {
-              setUser(null);
-              resetGenerationState();
-              localStorage.removeItem('omnipitch_token');
-            }}
-            className="flex items-center text-sm font-medium text-slate-400 hover:text-white transition-colors hover:bg-white/5 p-2 rounded-xl"
-            title="Sign Out"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+        </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-10 w-full tour-step-2">
-        <div className="hidden lg:block h-full">
-          <LeftSidebar
-            status={status}
-            currentStep={currentStep}
-            progressPercent={progressPercent}
-            request={generationRequest}
-            sources={sources}
-            outline={outline}
-            sourceSummary={sourceSummary}
-            presentation={presentation}
-          />
-        </div>
+        {errorMsg ? (
+          <div className="mt-4">
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <span>{errorMsg}</span>
+            </motion.div>
+          </div>
+        ) : null}
 
-        <div className="flex-1 overflow-y-auto relative z-10 bg-slate-950/40">
-          {errorMsg && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50">
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-full flex items-center text-red-400 backdrop-blur-md shadow-lg text-sm"
-              >
-                <AlertCircle className="w-4 h-4 mr-2 shrink-0" />
-                <p>{errorMsg}</p>
-              </motion.div>
-            </div>
-          )}
-
+        <main className="mt-4 flex-1">
           <CentralCanvas
             status={status}
             currentStep={currentStep}
@@ -360,37 +356,10 @@ function App() {
             onGenerate={handleGenerate}
             onReset={resetGenerationState}
           />
-        </div>
-      </div>
+        </main>
 
-      <div className="h-12 w-full px-4 sm:px-6 xl:px-8 flex justify-between items-center text-slate-500 text-xs z-20 border-t border-white/10 bg-slate-950/70 backdrop-blur-2xl shrink-0">
-        <p>OmniPitchAI transforms technical context into boardroom-ready decks.</p>
-        <div className="hidden md:flex items-center gap-5">
-          <span>Mixed-file ingestion</span>
-          <span>Live preview workspace</span>
-          <span>PPTX and PDF export</span>
-        </div>
+        <SiteFooter className="mt-4 rounded-[28px] bg-[color:var(--surface-strong)]" />
       </div>
-
-      <Joyride
-        steps={tourSteps}
-        run={runTour}
-        continuous
-        showProgress
-        showSkipButton
-        styles={{
-          options: {
-            primaryColor: '#6366f1',
-            backgroundColor: '#0f172a',
-            arrowColor: '#0f172a',
-            textColor: '#f1f5f9',
-            overlayColor: 'rgba(0, 0, 0, 0.7)'
-          },
-          tooltipContainer: {
-            textAlign: 'left'
-          }
-        }}
-      />
     </div>
   );
 }

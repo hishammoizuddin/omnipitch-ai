@@ -4,13 +4,52 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
     font-family: "Aptos", "Avenir Next", "Segoe UI", sans-serif;
+    --app-bg: #f4f0e8;
+    --surface: rgba(255, 251, 245, 0.78);
+    --surface-strong: rgba(255, 253, 249, 0.94);
+    --surface-muted: rgba(248, 243, 235, 0.86);
+    --panel: rgba(255, 255, 255, 0.72);
+    --panel-soft: rgba(255, 255, 255, 0.86);
+    --panel-strong: #ffffff;
+    --input: #ffffff;
+    --text: #18261f;
+    --muted: #607166;
+    --border: rgba(24, 38, 31, 0.1);
+    --accent: #174c3c;
+    --accent-soft: rgba(23, 76, 60, 0.1);
+    --accent-strong: #0d3529;
+    --accent-warm: #b86936;
     background:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
-      radial-gradient(circle at 82% 12%, rgba(245, 158, 11, 0.08), transparent 22%),
+      radial-gradient(circle at top left, rgba(23, 76, 60, 0.12), transparent 28%),
+      radial-gradient(circle at 92% 8%, rgba(184, 105, 54, 0.12), transparent 24%),
+      linear-gradient(180deg, #f7f3ec 0%, #f1ece3 100%);
+    background-color: var(--app-bg);
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --app-bg: #07111f;
+    --surface: rgba(8, 15, 30, 0.82);
+    --surface-strong: rgba(11, 18, 31, 0.92);
+    --surface-muted: rgba(18, 28, 46, 0.9);
+    --panel: rgba(15, 23, 42, 0.78);
+    --panel-soft: rgba(22, 33, 55, 0.88);
+    --panel-strong: rgba(15, 23, 42, 0.95);
+    --input: rgba(10, 16, 28, 0.94);
+    --text: #eef3f7;
+    --muted: #98a7bd;
+    --border: rgba(148, 163, 184, 0.18);
+    --accent: #2d8b72;
+    --accent-soft: rgba(45, 139, 114, 0.2);
+    --accent-strong: #226b58;
+    --accent-warm: #d39a68;
+    background:
+      radial-gradient(circle at top left, rgba(45, 139, 114, 0.16), transparent 28%),
+      radial-gradient(circle at 92% 8%, rgba(211, 154, 104, 0.15), transparent 24%),
       linear-gradient(180deg, #07111f 0%, #050a14 100%);
-    background-color: #050a14;
+    background-color: var(--app-bg);
   }
 
   html,
@@ -20,17 +59,30 @@
   }
 
   body {
-    @apply antialiased text-slate-200 selection:bg-sky-400/30 selection:text-white;
+    @apply antialiased selection:text-white;
+    color: var(--text);
     background:
-      radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 28%),
-      radial-gradient(circle at 82% 12%, rgba(245, 158, 11, 0.08), transparent 22%),
-      linear-gradient(180deg, #07111f 0%, #050a14 100%);
-    background-color: #050a14;
+      radial-gradient(circle at top left, rgba(23, 76, 60, 0.12), transparent 28%),
+      radial-gradient(circle at 92% 8%, rgba(184, 105, 54, 0.12), transparent 24%),
+      linear-gradient(180deg, #f7f3ec 0%, #f1ece3 100%);
+    background-color: var(--app-bg);
+    min-height: 100vh;
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(56, 189, 248, 0.24) rgba(15, 23, 42, 0.4);
+    scrollbar-color: rgba(23, 76, 60, 0.22) rgba(24, 38, 31, 0.05);
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      color 180ms ease,
+      box-shadow 180ms ease;
   }
 
   *::-webkit-scrollbar {
@@ -39,17 +91,17 @@
   }
 
   *::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.4);
+    background: rgba(24, 38, 31, 0.05);
   }
 
   *::-webkit-scrollbar-thumb {
-    background: rgba(56, 189, 248, 0.24);
+    background: rgba(23, 76, 60, 0.22);
     border-radius: 9999px;
-    border: 2px solid rgba(15, 23, 42, 0.4);
+    border: 2px solid rgba(24, 38, 31, 0.05);
   }
 
   *::-webkit-scrollbar-thumb:hover {
-    background: rgba(56, 189, 248, 0.34);
+    background: rgba(23, 76, 60, 0.34);
   }
 }
 
